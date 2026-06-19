@@ -101,6 +101,13 @@ export function IncomeForm({
             ))}
           </select>
         </div>
+
+        <div className="space-y-1">
+          <label htmlFor="receipt_date" className={labelClass}>
+            Eingang am <span className="text-neutral-400">(optional)</span>
+          </label>
+          <input id="receipt_date" name="receipt_date" type="date" className={inputClass} />
+        </div>
       </div>
 
       {state.error && (

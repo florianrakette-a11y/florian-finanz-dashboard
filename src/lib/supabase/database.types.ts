@@ -172,6 +172,7 @@ export type Database = {
           created_at: string
           id: string
           month: string
+          receipt_date: string | null
           source: string
           status: Database["public"]["Enums"]["income_status"]
         }
@@ -180,6 +181,7 @@ export type Database = {
           created_at?: string
           id?: string
           month: string
+          receipt_date?: string | null
           source: string
           status?: Database["public"]["Enums"]["income_status"]
         }
@@ -188,6 +190,7 @@ export type Database = {
           created_at?: string
           id?: string
           month?: string
+          receipt_date?: string | null
           source?: string
           status?: Database["public"]["Enums"]["income_status"]
         }

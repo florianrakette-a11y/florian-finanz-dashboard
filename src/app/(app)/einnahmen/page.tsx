@@ -14,7 +14,8 @@ import {
   INCOME_STATUS_LABELS,
 } from "./income-form";
 import { DeleteButton } from "./delete-button";
-import { deleteIncome, setIncomeStatus } from "./actions";
+import { deleteIncome, setIncomeStatus, updateIncomeDate } from "./actions";
+import { DateCell } from "@/components/date-cell";
 
 export default async function EinnahmenPage({
   searchParams,
@@ -32,7 +33,13 @@ export default async function EinnahmenPage({
     .eq("month", from)
     .order("amount_cents", { ascending: false });
 
-  const rows = data ?? [];
+  const rows = (data ?? []).sort((a, b) => {
+    // Mit Datum zuerst (chronologisch), „offene" (ohne Datum) ans Ende.
+    if (a.receipt_date && b.receipt_date) return a.receipt_date.localeCompare(b.receipt_date);
+    if (a.receipt_date) return -1;
+    if (b.receipt_date) return 1;
+    return b.amount_cents - a.amount_cents;
+  });
   const received = rows.filter((r) => r.status === "received").reduce((s, r) => s + r.amount_cents, 0);
   const expected = rows.filter((r) => r.status === "expected").reduce((s, r) => s + r.amount_cents, 0);
 
@@ -95,6 +102,7 @@ export default async function EinnahmenPage({
             <thead className="bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500">
               <tr>
                 <th className="px-4 py-3 font-medium">Quelle</th>
+                <th className="px-4 py-3 font-medium">Eingang</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 text-right font-medium">Betrag</th>
                 <th className="px-4 py-3 text-right font-medium">Aktionen</th>
@@ -105,6 +113,12 @@ export default async function EinnahmenPage({
                 <tr key={r.id}>
                   <td className="px-4 py-3 font-medium">
                     {INCOME_SOURCE_LABELS[r.source] ?? r.source}
+                  </td>
+                  <td className="px-4 py-3">
+                    <DateCell
+                      value={r.receipt_date}
+                      action={updateIncomeDate.bind(null, r.id)}
+                    />
                   </td>
                   <td className="px-4 py-3">
                     <span

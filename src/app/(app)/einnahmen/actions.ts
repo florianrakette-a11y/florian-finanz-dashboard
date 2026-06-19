@@ -46,17 +46,28 @@ export async function createIncome(
   }
   if (amount_cents <= 0) return { error: "Der Betrag muss größer als 0 sein." };
 
+  const receiptRaw = String(formData.get("receipt_date") ?? "").trim();
+  const receipt_date = receiptRaw === "" ? null : receiptRaw;
+
   const supabase = await getAuthedClient();
   const { error } = await supabase.from("income_entries").insert({
     source,
     status,
     amount_cents,
     month: `${monthRaw}-01`,
+    receipt_date,
   });
   if (error) return { error: "Speichern fehlgeschlagen: " + error.message };
 
   revalidatePath("/einnahmen");
   return { ok: true };
+}
+
+export async function updateIncomeDate(id: string, date: string | null) {
+  const value = date && date.trim() !== "" ? date.trim() : null;
+  const supabase = await getAuthedClient();
+  await supabase.from("income_entries").update({ receipt_date: value }).eq("id", id);
+  revalidatePath("/einnahmen");
 }
 
 export async function setIncomeStatus(formData: FormData) {
