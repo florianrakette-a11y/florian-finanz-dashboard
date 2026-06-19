@@ -52,8 +52,14 @@ async function bbPost<T = unknown>(
   return { rows: json.rows ?? 0, data: Array.isArray(json.data) ? json.data : [] };
 }
 
-/** Holt alle Transaktionen, paginiert in 500er-Schritten. */
-export async function fetchAllTransactions(): Promise<BBTransaction[]> {
+/**
+ * Holt Transaktionen, paginiert in 500er-Schritten.
+ * Mit `dateFrom`/`dateTo` (Format 'YYYY-MM-DD') serverseitig auf einen Zeitraum begrenzt.
+ */
+export async function fetchTransactions(opts?: {
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<BBTransaction[]> {
   const all: BBTransaction[] = [];
   const limit = 500;
   let offset = 0;
@@ -62,6 +68,8 @@ export async function fetchAllTransactions(): Promise<BBTransaction[]> {
     const { data } = await bbPost<BBTransaction>("/transactions/get", {
       limit,
       offset,
+      ...(opts?.dateFrom ? { date_from: opts.dateFrom } : {}),
+      ...(opts?.dateTo ? { date_to: opts.dateTo } : {}),
     });
     all.push(...data);
     if (data.length < limit) break;

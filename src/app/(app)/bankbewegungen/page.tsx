@@ -25,7 +25,7 @@ export default async function BankbewegungenPage() {
       <div>
         <h2 className="text-2xl font-semibold text-neutral-900">Bankbewegungen</h2>
         <p className="mt-1 text-sm text-neutral-500">
-          Aus Buchhaltungsbutler (Kontist & PayPal). Abruf nur lesend.
+          Aus Buchhaltungsbutler (Kontist & PayPal), aktueller Monat. Abruf nur lesend.
         </p>
       </div>
 
