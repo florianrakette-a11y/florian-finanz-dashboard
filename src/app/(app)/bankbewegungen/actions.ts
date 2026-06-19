@@ -7,12 +7,7 @@ import {
   bbAmountToCents,
   bbDateOnly,
 } from "@/lib/buchhaltungsbutler";
-
-/** Erster Tag des aktuellen Monats als 'YYYY-MM-DD' (lokale Zeit). */
-function firstOfCurrentMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-}
+import { currentMonth, isValidMonth, monthBounds, monthLabel } from "@/lib/month";
 
 export type SyncState = { ok?: boolean; message?: string };
 
@@ -26,16 +21,19 @@ export async function syncBankTransactions(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Nicht angemeldet." };
 
-  const dateFrom = firstOfCurrentMonth();
+  const monthRaw = String(_formData.get("month") ?? "");
+  const month = isValidMonth(monthRaw) ? monthRaw : currentMonth();
+  const { from, to } = monthBounds(month);
+
   let transactions;
   try {
-    transactions = await fetchTransactions({ dateFrom });
+    transactions = await fetchTransactions({ dateFrom: from, dateTo: to });
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Abruf fehlgeschlagen." };
   }
 
   if (transactions.length === 0) {
-    return { ok: true, message: "Keine Transaktionen im aktuellen Monat gefunden." };
+    return { ok: true, message: `${monthLabel(month)}: keine Transaktionen gefunden.` };
   }
 
   const rows = transactions.map((t) => ({
@@ -66,6 +64,6 @@ export async function syncBankTransactions(
   revalidatePath("/bankbewegungen");
   return {
     ok: true,
-    message: `Aktueller Monat: ${transactions.length} Transaktionen abgerufen, ${neu} neu gespeichert.`,
+    message: `${monthLabel(month)}: ${transactions.length} Transaktionen abgerufen, ${neu} neu gespeichert.`,
   };
 }

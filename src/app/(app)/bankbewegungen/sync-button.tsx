@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { syncBankTransactions, type SyncState } from "./actions";
 
-export function SyncButton() {
+export function SyncButton({ month }: { month: string }) {
   const [state, formAction, isPending] = useActionState<SyncState, FormData>(
     syncBankTransactions,
     {},
@@ -12,6 +12,7 @@ export function SyncButton() {
   return (
     <div className="flex items-center gap-4">
       <form action={formAction}>
+        <input type="hidden" name="month" value={month} />
         <button
           type="submit"
           disabled={isPending}
