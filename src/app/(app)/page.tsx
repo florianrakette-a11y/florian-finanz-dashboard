@@ -1,16 +1,207 @@
-export default function OverviewPage() {
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { formatCents, FREQUENCY_LABELS } from "@/lib/format";
+import {
+  currentMonth,
+  isValidMonth,
+  monthBounds,
+  monthLabel,
+  shiftMonth,
+} from "@/lib/month";
+import { isFixedDueInMonth } from "@/lib/fixed-expenses";
+
+function KpiCard({
+  href,
+  label,
+  value,
+  sub,
+  tone = "neutral",
+}: {
+  href: string;
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: "neutral" | "green" | "red";
+}) {
+  const valueColor =
+    tone === "green" ? "text-green-700" : tone === "red" ? "text-red-600" : "text-neutral-900";
+  return (
+    <Link
+      href={href}
+      className="rounded-2xl border border-neutral-200 bg-white p-5 transition hover:border-neutral-300 hover:shadow-sm"
+    >
+      <div className="text-xs uppercase tracking-wide text-neutral-500">{label}</div>
+      <div className={`mt-1 text-2xl font-semibold tabular-nums ${valueColor}`}>{value}</div>
+      {sub && <div className="mt-1 text-xs text-neutral-400">{sub}</div>}
+    </Link>
+  );
+}
+
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
+  const sp = await searchParams;
+  const month = isValidMonth(sp.month) ? sp.month : currentMonth();
+  const { from, to } = monthBounds(month);
+  const supabase = await createClient();
+
+  const [fixedRes, variableRes, incomeRes, invoicesRes, bankRes] = await Promise.all([
+    supabase.from("fixed_expenses").select("*"),
+    supabase.from("variable_expenses").select("amount_cents").gte("date", from).lte("date", to),
+    supabase.from("income_entries").select("amount_cents, status").eq("month", from),
+    supabase.from("open_invoices").select("amount_cents, status, due_date"),
+    supabase.from("bank_transactions").select("amount_cents").gte("date", from).lte("date", to),
+  ]);
+
+  const fixedAll = fixedRes.data ?? [];
+  const fixedDue = fixedAll.filter((r) => isFixedDueInMonth(r, month));
+  const fixedTotal = fixedDue.reduce((s, r) => s + r.amount_cents, 0);
+
+  const variableTotal = (variableRes.data ?? []).reduce((s, r) => s + r.amount_cents, 0);
+
+  const income = incomeRes.data ?? [];
+  const incomeReceived = income.filter((r) => r.status === "received").reduce((s, r) => s + r.amount_cents, 0);
+  const incomeExpected = income.filter((r) => r.status === "expected").reduce((s, r) => s + r.amount_cents, 0);
+  const incomePlanned = incomeReceived + incomeExpected;
+
+  const invoices = invoicesRes.data ?? [];
+  const openInvoicesTotal = invoices.filter((i) => i.status !== "paid").reduce((s, i) => s + i.amount_cents, 0);
+
+  const bankSaldo = (bankRes.data ?? []).reduce((s, r) => s + r.amount_cents, 0);
+
+  const plannedExpenses = fixedTotal + variableTotal;
+  const plannedResult = incomePlanned - plannedExpenses;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold text-neutral-900">Übersicht</h2>
-        <p className="mt-1 text-sm text-neutral-500">
-          Monatsansicht Soll/Ist und anstehende Fälligkeiten – folgt in Phase 3.
-        </p>
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-neutral-900">Übersicht</h2>
+          <p className="mt-1 text-sm text-neutral-500">Soll/Ist für {monthLabel(month)}</p>
+        </div>
       </div>
 
-      <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center text-sm text-neutral-500">
-        Sobald fixe Ausgaben, Rechnungen und Einnahmen erfasst sind, erscheint
-        hier die Auswertung.
+      {/* Monats-Navigation */}
+      <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3">
+        <Link
+          href={`/?month=${shiftMonth(month, -1)}`}
+          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
+        >
+          ← {monthLabel(shiftMonth(month, -1))}
+        </Link>
+        <div className="text-base font-semibold text-neutral-900">{monthLabel(month)}</div>
+        <Link
+          href={`/?month=${shiftMonth(month, 1)}`}
+          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
+        >
+          {monthLabel(shiftMonth(month, 1))} →
+        </Link>
+      </div>
+
+      {/* Soll / Ist */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <div className="text-xs uppercase tracking-wide text-neutral-500">
+            Geplantes Ergebnis (Soll)
+          </div>
+          <div
+            className={`mt-1 text-3xl font-semibold tabular-nums ${
+              plannedResult < 0 ? "text-red-600" : "text-green-700"
+            }`}
+          >
+            {formatCents(plannedResult)}
+          </div>
+          <dl className="mt-4 space-y-1 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-neutral-500">Einnahmen (geplant)</dt>
+              <dd className="tabular-nums text-green-700">{formatCents(incomePlanned)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-neutral-500">Fixe Ausgaben</dt>
+              <dd className="tabular-nums text-red-600">−{formatCents(fixedTotal)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-neutral-500">Variable Ausgaben</dt>
+              <dd className="tabular-nums text-red-600">−{formatCents(variableTotal)}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <div className="text-xs uppercase tracking-wide text-neutral-500">
+            Bank-Saldo (Ist)
+          </div>
+          <div
+            className={`mt-1 text-3xl font-semibold tabular-nums ${
+              bankSaldo < 0 ? "text-red-600" : "text-green-700"
+            }`}
+          >
+            {formatCents(bankSaldo)}
+          </div>
+          <p className="mt-4 text-sm text-neutral-400">
+            Tatsächliche Bewegungen auf Kontist + PayPal in {monthLabel(month)}.
+          </p>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard
+          href={`/einnahmen?month=${month}`}
+          label="Einnahmen erhalten"
+          value={formatCents(incomeReceived)}
+          sub={incomeExpected > 0 ? `+ ${formatCents(incomeExpected)} erwartet` : undefined}
+          tone="green"
+        />
+        <KpiCard
+          href={`/fixe-ausgaben?month=${month}`}
+          label="Fixe Ausgaben"
+          value={formatCents(fixedTotal)}
+          sub={`${fixedDue.length} fällig`}
+        />
+        <KpiCard
+          href={`/variable-ausgaben?month=${month}`}
+          label="Variable Ausgaben"
+          value={formatCents(variableTotal)}
+        />
+        <KpiCard
+          href={`/offene-rechnungen?month=${month}`}
+          label="Offene Rechnungen"
+          value={formatCents(openInvoicesTotal)}
+          tone="red"
+        />
+      </div>
+
+      {/* Anstehende Fälligkeiten */}
+      <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+        <h3 className="text-base font-semibold text-neutral-900">
+          Anstehende Fälligkeiten in {monthLabel(month)}
+        </h3>
+        {fixedDue.length === 0 ? (
+          <p className="mt-3 text-sm text-neutral-500">Keine fixen Ausgaben fällig.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-neutral-100">
+            {[...fixedDue]
+              .sort((a, b) => a.due_day_of_month - b.due_day_of_month)
+              .map((r) => (
+                <li key={r.id} className="flex items-center justify-between py-2 text-sm">
+                  <span>
+                    <span className="text-neutral-400 tabular-nums">{r.due_day_of_month}. </span>
+                    {r.frequency !== "monthly" && <span title="Nicht monatlich">⚠️ </span>}
+                    <span className="font-medium text-neutral-900">{r.name}</span>
+                    {r.frequency !== "monthly" && (
+                      <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
+                        {FREQUENCY_LABELS[r.frequency]}
+                      </span>
+                    )}
+                  </span>
+                  <span className="tabular-nums">{formatCents(r.amount_cents)}</span>
+                </li>
+              ))}
+          </ul>
+        )}
       </div>
     </div>
   );
