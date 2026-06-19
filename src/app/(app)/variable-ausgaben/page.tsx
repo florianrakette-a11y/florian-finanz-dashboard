@@ -13,7 +13,8 @@ import {
   VARIABLE_CATEGORY_LABELS,
 } from "./variable-expense-form";
 import { DeleteButton } from "./delete-button";
-import { deleteVariableExpense } from "./actions";
+import { deleteVariableExpense, updateVariableExpenseCategory } from "./actions";
+import { CategoryCell } from "@/components/category-cell";
 
 export default async function VariableAusgabenPage({
   searchParams,
@@ -34,6 +35,15 @@ export default async function VariableAusgabenPage({
 
   const rows = data ?? [];
   const total = rows.reduce((s, r) => s + r.amount_cents, 0);
+
+  // Bekannte Kategorien fürs Dropdown: Standard + alle bereits verwendeten.
+  const { data: allCats } = await supabase.from("variable_expenses").select("category");
+  const knownCategories = Array.from(
+    new Set([
+      ...Object.keys(VARIABLE_CATEGORY_LABELS),
+      ...(allCats ?? []).map((r) => r.category),
+    ]),
+  );
   // Default-Datum fürs Formular: heute, aber im gewählten Monat sinnvoll bleiben.
   const today = new Date().toISOString().slice(0, 10);
   const defaultDate = today.startsWith(month) ? today : `${month}-01`;
@@ -89,7 +99,12 @@ export default async function VariableAusgabenPage({
                 <tr key={r.id}>
                   <td className="px-4 py-3 whitespace-nowrap tabular-nums">{r.date}</td>
                   <td className="px-4 py-3">
-                    {VARIABLE_CATEGORY_LABELS[r.category] ?? r.category}
+                    <CategoryCell
+                      value={r.category}
+                      options={knownCategories}
+                      labels={VARIABLE_CATEGORY_LABELS}
+                      action={updateVariableExpenseCategory.bind(null, r.id)}
+                    />
                   </td>
                   <td className="px-4 py-3 text-neutral-500">{r.description}</td>
                   <td className="px-4 py-3 text-right tabular-nums">

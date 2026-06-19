@@ -14,12 +14,15 @@ import {
   createFixedExpense,
   deleteFixedExpense,
   toggleFixedExpenseActive,
+  updateFixedExpenseCategory,
 } from "./actions";
+import { CategoryCell } from "@/components/category-cell";
+import { Constants } from "@/lib/supabase/database.types";
 import type { Database } from "@/lib/supabase/database.types";
 
 type Row = Database["public"]["Tables"]["fixed_expenses"]["Row"];
 
-function FixedRow({ r }: { r: Row }) {
+function FixedRow({ r, knownCategories }: { r: Row; knownCategories: string[] }) {
   const nonMonthly = r.frequency !== "monthly";
   return (
     <tr className={r.active ? "" : "bg-neutral-50 text-neutral-400"}>
@@ -35,7 +38,13 @@ function FixedRow({ r }: { r: Row }) {
           </span>
         )}
       </td>
-      <td className="px-4 py-3">{r.category}</td>
+      <td className="px-4 py-3">
+        <CategoryCell
+          value={r.category}
+          options={knownCategories}
+          action={updateFixedExpenseCategory.bind(null, r.id)}
+        />
+      </td>
       <td className="px-4 py-3">
         {nonMonthly ? (
           <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
@@ -69,7 +78,13 @@ function FixedRow({ r }: { r: Row }) {
   );
 }
 
-function FixedTable({ rows }: { rows: Row[] }) {
+function FixedTable({
+  rows,
+  knownCategories,
+}: {
+  rows: Row[];
+  knownCategories: string[];
+}) {
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
       <table className="w-full text-sm">
@@ -85,7 +100,7 @@ function FixedTable({ rows }: { rows: Row[] }) {
         </thead>
         <tbody className="divide-y divide-neutral-100">
           {rows.map((r) => (
-            <FixedRow key={r.id} r={r} />
+            <FixedRow key={r.id} r={r} knownCategories={knownCategories} />
           ))}
         </tbody>
       </table>
@@ -127,6 +142,14 @@ export default async function FixeAusgabenPage({
   const dueThisMonth = all.filter((r) => isFixedDueInMonth(r, month));
   const monthTotal = dueThisMonth.reduce((s, r) => s + r.amount_cents, 0);
 
+  // Bekannte Kategorien fürs Inline-Dropdown: Standard + bereits verwendete.
+  const knownCategories = Array.from(
+    new Set([
+      ...Constants.public.Enums.fixed_expense_category,
+      ...all.map((r) => r.category),
+    ]),
+  );
+
   const prefill = sp.neu
     ? {
         name: sp.name,
@@ -167,7 +190,7 @@ export default async function FixeAusgabenPage({
           Keine fixen Ausgaben fällig in {monthLabel(month)}.
         </div>
       ) : (
-        <FixedTable rows={dueThisMonth} />
+        <FixedTable rows={dueThisMonth} knownCategories={knownCategories} />
       )}
 
       <details className="rounded-2xl border border-neutral-200 bg-white p-6">
@@ -175,7 +198,7 @@ export default async function FixeAusgabenPage({
           Alle fixen Ausgaben verwalten ({all.length})
         </summary>
         <div className="mt-6">
-          <FixedTable rows={all} />
+          <FixedTable rows={all} knownCategories={knownCategories} />
         </div>
       </details>
 

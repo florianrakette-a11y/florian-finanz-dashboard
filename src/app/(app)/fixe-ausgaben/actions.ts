@@ -114,6 +114,14 @@ export async function updateFixedExpense(
   redirect("/fixe-ausgaben");
 }
 
+export async function updateFixedExpenseCategory(id: string, category: string) {
+  const c = category.trim();
+  if (!c) return;
+  const supabase = await getAuthedClient();
+  await supabase.from("fixed_expenses").update({ category: c }).eq("id", id);
+  revalidatePath("/fixe-ausgaben");
+}
+
 export async function deleteFixedExpense(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const supabase = await getAuthedClient();

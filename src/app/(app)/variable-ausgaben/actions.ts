@@ -55,6 +55,14 @@ export async function createVariableExpense(
   return { ok: true };
 }
 
+export async function updateVariableExpenseCategory(id: string, category: string) {
+  const c = category.trim();
+  if (!c) return;
+  const supabase = await getAuthedClient();
+  await supabase.from("variable_expenses").update({ category: c }).eq("id", id);
+  revalidatePath("/variable-ausgaben");
+}
+
 export async function deleteVariableExpense(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const supabase = await getAuthedClient();

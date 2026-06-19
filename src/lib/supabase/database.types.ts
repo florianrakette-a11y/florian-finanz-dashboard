@@ -125,7 +125,7 @@ export type Database = {
         Row: {
           active: boolean
           amount_cents: number
-          category: Database["public"]["Enums"]["fixed_expense_category"]
+          category: string
           created_at: string
           due_day_of_month: number
           end_date: string | null
@@ -139,7 +139,7 @@ export type Database = {
         Insert: {
           active?: boolean
           amount_cents: number
-          category: Database["public"]["Enums"]["fixed_expense_category"]
+          category: string
           created_at?: string
           due_day_of_month: number
           end_date?: string | null
@@ -153,7 +153,7 @@ export type Database = {
         Update: {
           active?: boolean
           amount_cents?: number
-          category?: Database["public"]["Enums"]["fixed_expense_category"]
+          category?: string
           created_at?: string
           due_day_of_month?: number
           end_date?: string | null
@@ -277,7 +277,7 @@ export type Database = {
         Row: {
           amount_cents: number
           bank_transaction_id: string | null
-          category: Database["public"]["Enums"]["variable_expense_category"]
+          category: string
           created_at: string
           date: string
           description: string | null
@@ -288,7 +288,7 @@ export type Database = {
         Insert: {
           amount_cents: number
           bank_transaction_id?: string | null
-          category: Database["public"]["Enums"]["variable_expense_category"]
+          category: string
           created_at?: string
           date: string
           description?: string | null
@@ -299,7 +299,7 @@ export type Database = {
         Update: {
           amount_cents?: number
           bank_transaction_id?: string | null
-          category?: Database["public"]["Enums"]["variable_expense_category"]
+          category?: string
           created_at?: string
           date?: string
           description?: string | null
