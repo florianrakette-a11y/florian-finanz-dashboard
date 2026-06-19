@@ -47,17 +47,3 @@ export const FREQUENCY_LABELS: Record<Frequency, string> = {
   biannual: "Halbjährlich",
   yearly: "Jährlich",
 };
-
-/** Auf einen Monat normalisierter Cent-Betrag (für die monatliche Belastung). */
-export function monthlyEquivalentCents(
-  cents: number,
-  frequency: Frequency,
-): number {
-  const divisor: Record<Frequency, number> = {
-    monthly: 1,
-    quarterly: 3,
-    biannual: 6,
-    yearly: 12,
-  };
-  return Math.round(cents / divisor[frequency]);
-}

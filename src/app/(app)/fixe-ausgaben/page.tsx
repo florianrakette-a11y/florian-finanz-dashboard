@@ -1,10 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import {
-  formatCents,
-  FREQUENCY_LABELS,
-  monthlyEquivalentCents,
-} from "@/lib/format";
+import { formatCents, FREQUENCY_LABELS } from "@/lib/format";
 import { FixedExpenseForm } from "./fixed-expense-form";
 import { DeleteButton } from "./delete-button";
 import {
@@ -32,10 +28,7 @@ export default async function FixeAusgabenPage() {
 
   const rows = expenses ?? [];
   const activeRows = rows.filter((r) => r.active);
-  const monthlyTotal = activeRows.reduce(
-    (sum, r) => sum + monthlyEquivalentCents(r.amount_cents, r.frequency),
-    0,
-  );
+  const activeTotal = activeRows.reduce((sum, r) => sum + r.amount_cents, 0);
 
   return (
     <div className="space-y-8">
@@ -49,8 +42,8 @@ export default async function FixeAusgabenPage() {
           </p>
         </div>
         <div className="rounded-2xl bg-neutral-900 px-5 py-3 text-right text-white">
-          <div className="text-xs text-neutral-300">Monatliche Belastung</div>
-          <div className="text-xl font-semibold">{formatCents(monthlyTotal)}</div>
+          <div className="text-xs text-neutral-300">Summe fixe Ausgaben (aktiv)</div>
+          <div className="text-xl font-semibold">{formatCents(activeTotal)}</div>
         </div>
       </div>
 
