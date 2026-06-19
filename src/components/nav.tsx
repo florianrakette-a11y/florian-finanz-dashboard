@@ -8,6 +8,7 @@ const links = [
   { href: "/fixe-ausgaben", label: "Fixe Ausgaben" },
   { href: "/variable-ausgaben", label: "Variable Ausgaben" },
   { href: "/offene-rechnungen", label: "Offene Rechnungen" },
+  { href: "/bankbewegungen", label: "Bankbewegungen" },
   { href: "/einnahmen", label: "Einnahmen" },
   { href: "/belege", label: "Belege" },
 ];
