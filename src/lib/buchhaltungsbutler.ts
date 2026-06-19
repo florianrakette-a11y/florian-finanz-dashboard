@@ -52,13 +52,26 @@ async function bbPost<T = unknown>(
   return { rows: json.rows ?? 0, data: Array.isArray(json.data) ? json.data : [] };
 }
 
+export type BBAccount = {
+  name: string;
+  postingaccount_number: string | null;
+};
+
+/** Listet die in Buchhaltungsbutler verbundenen Konten. */
+export async function fetchAccounts(): Promise<BBAccount[]> {
+  const { data } = await bbPost<BBAccount>("/accounts/get", {});
+  return data;
+}
+
 /**
  * Holt Transaktionen, paginiert in 500er-Schritten.
- * Mit `dateFrom`/`dateTo` (Format 'YYYY-MM-DD') serverseitig auf einen Zeitraum begrenzt.
+ * Mit `dateFrom`/`dateTo` (Format 'YYYY-MM-DD') und optional `account` (Kontonummer)
+ * serverseitig eingegrenzt.
  */
 export async function fetchTransactions(opts?: {
   dateFrom?: string;
   dateTo?: string;
+  account?: number;
 }): Promise<BBTransaction[]> {
   const all: BBTransaction[] = [];
   const limit = 500;
@@ -70,6 +83,7 @@ export async function fetchTransactions(opts?: {
       offset,
       ...(opts?.dateFrom ? { date_from: opts.dateFrom } : {}),
       ...(opts?.dateTo ? { date_to: opts.dateTo } : {}),
+      ...(opts?.account != null ? { account: opts.account } : {}),
     });
     all.push(...data);
     if (data.length < limit) break;

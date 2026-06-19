@@ -17,6 +17,7 @@ export type Database = {
       bank_transactions: {
         Row: {
           amount_cents: number
+          bb_account: string | null
           bb_transaction_id: string
           counterpart: string | null
           date: string
@@ -30,6 +31,7 @@ export type Database = {
         }
         Insert: {
           amount_cents: number
+          bb_account?: string | null
           bb_transaction_id: string
           counterpart?: string | null
           date: string
@@ -43,6 +45,7 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
+          bb_account?: string | null
           bb_transaction_id?: string
           counterpart?: string | null
           date?: string
