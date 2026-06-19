@@ -7,7 +7,6 @@ import { isValidMonth } from "@/lib/month";
 import { Constants } from "@/lib/supabase/database.types";
 import type { Database } from "@/lib/supabase/database.types";
 
-type Source = Database["public"]["Enums"]["income_source"];
 type Status = Database["public"]["Enums"]["income_status"];
 
 export type FormState = { error?: string; ok?: boolean };
@@ -28,10 +27,11 @@ export async function createIncome(
   const monthRaw = String(formData.get("month") ?? "");
   if (!isValidMonth(monthRaw)) return { error: "Ungültiger Monat." };
 
-  const source = String(formData.get("source") ?? "") as Source;
-  if (!Constants.public.Enums.income_source.includes(source)) {
-    return { error: "Ungültige Quelle." };
+  let source = String(formData.get("source") ?? "").trim();
+  if (source === "__custom__") {
+    source = String(formData.get("custom_source") ?? "").trim();
   }
+  if (!source) return { error: "Bitte eine Quelle wählen oder eingeben." };
 
   const status = String(formData.get("status") ?? "") as Status;
   if (!Constants.public.Enums.income_status.includes(status)) {

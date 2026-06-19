@@ -172,7 +172,7 @@ export type Database = {
           created_at: string
           id: string
           month: string
-          source: Database["public"]["Enums"]["income_source"]
+          source: string
           status: Database["public"]["Enums"]["income_status"]
         }
         Insert: {
@@ -180,7 +180,7 @@ export type Database = {
           created_at?: string
           id?: string
           month: string
-          source: Database["public"]["Enums"]["income_source"]
+          source: string
           status?: Database["public"]["Enums"]["income_status"]
         }
         Update: {
@@ -188,7 +188,7 @@ export type Database = {
           created_at?: string
           id?: string
           month?: string
-          source?: Database["public"]["Enums"]["income_source"]
+          source?: string
           status?: Database["public"]["Enums"]["income_status"]
         }
         Relationships: []

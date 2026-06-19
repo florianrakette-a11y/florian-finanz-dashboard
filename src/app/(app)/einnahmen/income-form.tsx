@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { createIncome, type FormState } from "./actions";
 import { Constants } from "@/lib/supabase/database.types";
 
@@ -21,12 +21,19 @@ export const INCOME_STATUS_LABELS: Record<string, string> = {
   received: "Erhalten",
 };
 
-export function IncomeForm({ month }: { month: string }) {
+export function IncomeForm({
+  month,
+  knownSources,
+}: {
+  month: string;
+  knownSources: { value: string; label: string }[];
+}) {
   const [state, formAction, isPending] = useActionState<FormState, FormData>(
     createIncome,
     {},
   );
   const formRef = useRef<HTMLFormElement>(null);
+  const [sourceValue, setSourceValue] = useState("");
 
   useEffect(() => {
     if (state.ok) formRef.current?.reset();
@@ -40,23 +47,48 @@ export function IncomeForm({ month }: { month: string }) {
           <label htmlFor="source" className={labelClass}>
             Quelle
           </label>
-          <select id="source" name="source" required defaultValue="" className={inputClass}>
+          <select
+            id="source"
+            name="source"
+            required
+            value={sourceValue}
+            onChange={(e) => setSourceValue(e.target.value)}
+            className={inputClass}
+          >
             <option value="" disabled>
               Bitte wählen…
             </option>
-            {Constants.public.Enums.income_source.map((s) => (
-              <option key={s} value={s}>
-                {INCOME_SOURCE_LABELS[s] ?? s}
+            {knownSources.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
               </option>
             ))}
+            <option value="__custom__">+ Neue Quelle…</option>
           </select>
         </div>
+
+        {sourceValue === "__custom__" && (
+          <div className="space-y-1">
+            <label htmlFor="custom_source" className={labelClass}>
+              Neue Quelle
+            </label>
+            <input
+              id="custom_source"
+              name="custom_source"
+              required
+              placeholder="z. B. Spotify, Bandcamp…"
+              className={inputClass}
+            />
+          </div>
+        )}
+
         <div className="space-y-1">
           <label htmlFor="amount" className={labelClass}>
             Betrag (€)
           </label>
           <input id="amount" name="amount" required inputMode="decimal" placeholder="1.124,00" className={inputClass} />
         </div>
+
         <div className="space-y-1">
           <label htmlFor="status" className={labelClass}>
             Status

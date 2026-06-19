@@ -36,6 +36,19 @@ export default async function EinnahmenPage({
   const received = rows.filter((r) => r.status === "received").reduce((s, r) => s + r.amount_cents, 0);
   const expected = rows.filter((r) => r.status === "expected").reduce((s, r) => s + r.amount_cents, 0);
 
+  // Bekannte Quellen fürs Dropdown: Standardwerte + bereits verwendete (inkl. eigener).
+  const { data: allSources } = await supabase.from("income_entries").select("source");
+  const sourceValues = Array.from(
+    new Set([
+      ...Object.keys(INCOME_SOURCE_LABELS),
+      ...(allSources ?? []).map((r) => r.source),
+    ]),
+  );
+  const knownSources = sourceValues.map((value) => ({
+    value,
+    label: INCOME_SOURCE_LABELS[value] ?? value,
+  }));
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between">
@@ -138,7 +151,7 @@ export default async function EinnahmenPage({
           Neue Einnahme erfassen
         </summary>
         <div className="mt-6">
-          <IncomeForm month={month} />
+          <IncomeForm month={month} knownSources={knownSources} />
         </div>
       </details>
     </div>
