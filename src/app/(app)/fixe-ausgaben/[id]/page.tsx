@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FixedExpenseForm } from "../fixed-expense-form";
 import { updateFixedExpense } from "../actions";
+import { getKnownCategories } from "@/lib/categories";
 
 export default async function EditFixedExpensePage({
   params,
@@ -19,6 +20,7 @@ export default async function EditFixedExpensePage({
 
   if (!expense) notFound();
 
+  const knownCategories = await getKnownCategories(supabase);
   const updateAction = updateFixedExpense.bind(null, id);
 
   return (
@@ -39,6 +41,7 @@ export default async function EditFixedExpensePage({
         <FixedExpenseForm
           action={updateAction}
           initial={expense}
+          knownCategories={knownCategories}
           submitLabel="Änderungen speichern"
         />
       </div>

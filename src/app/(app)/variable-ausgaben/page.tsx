@@ -8,13 +8,11 @@ import {
   monthLabel,
   shiftMonth,
 } from "@/lib/month";
-import {
-  VariableExpenseForm,
-  VARIABLE_CATEGORY_LABELS,
-} from "./variable-expense-form";
+import { VariableExpenseForm } from "./variable-expense-form";
 import { DeleteButton } from "./delete-button";
 import { deleteVariableExpense, updateVariableExpenseCategory } from "./actions";
 import { CategoryCell } from "@/components/category-cell";
+import { getKnownCategories, CATEGORY_LABELS } from "@/lib/categories";
 
 export default async function VariableAusgabenPage({
   searchParams,
@@ -36,14 +34,8 @@ export default async function VariableAusgabenPage({
   const rows = data ?? [];
   const total = rows.reduce((s, r) => s + r.amount_cents, 0);
 
-  // Bekannte Kategorien fürs Dropdown: Standard + alle bereits verwendeten.
-  const { data: allCats } = await supabase.from("variable_expenses").select("category");
-  const knownCategories = Array.from(
-    new Set([
-      ...Object.keys(VARIABLE_CATEGORY_LABELS),
-      ...(allCats ?? []).map((r) => r.category),
-    ]),
-  );
+  // Gemeinsame, synchronisierte Kategorienliste (fix + variabel).
+  const knownCategories = await getKnownCategories(supabase);
   // Default-Datum fürs Formular: heute, aber im gewählten Monat sinnvoll bleiben.
   const today = new Date().toISOString().slice(0, 10);
   const defaultDate = today.startsWith(month) ? today : `${month}-01`;
@@ -102,7 +94,7 @@ export default async function VariableAusgabenPage({
                     <CategoryCell
                       value={r.category}
                       options={knownCategories}
-                      labels={VARIABLE_CATEGORY_LABELS}
+                      labels={CATEGORY_LABELS}
                       action={updateVariableExpenseCategory.bind(null, r.id)}
                     />
                   </td>
@@ -141,7 +133,7 @@ export default async function VariableAusgabenPage({
           Neue variable Ausgabe erfassen
         </summary>
         <div className="mt-6">
-          <VariableExpenseForm defaultDate={defaultDate} />
+          <VariableExpenseForm defaultDate={defaultDate} knownCategories={knownCategories} />
         </div>
       </details>
     </div>

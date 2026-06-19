@@ -5,6 +5,8 @@ import { FREQUENCY_LABELS, centsToInput } from "@/lib/format";
 import { Constants } from "@/lib/supabase/database.types";
 import type { Database } from "@/lib/supabase/database.types";
 import type { FormState } from "./actions";
+import { CategoryField } from "@/components/category-field";
+import { CATEGORY_LABELS } from "@/lib/categories";
 
 type Row = Database["public"]["Tables"]["fixed_expenses"]["Row"];
 
@@ -16,6 +18,7 @@ export function FixedExpenseForm({
   action,
   initial,
   prefill,
+  knownCategories,
   submitLabel,
   resetOnSuccess = false,
 }: {
@@ -27,6 +30,7 @@ export function FixedExpenseForm({
     due_day?: number;
     start_date?: string;
   };
+  knownCategories: string[];
   submitLabel: string;
   resetOnSuccess?: boolean;
 }) {
@@ -76,27 +80,11 @@ export function FixedExpenseForm({
           />
         </div>
 
-        <div className="space-y-1">
-          <label htmlFor="category" className={labelClass}>
-            Kategorie
-          </label>
-          <select
-            id="category"
-            name="category"
-            required
-            defaultValue={initial?.category ?? ""}
-            className={inputClass}
-          >
-            <option value="" disabled>
-              Bitte wählen…
-            </option>
-            {Constants.public.Enums.fixed_expense_category.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
+        <CategoryField
+          knownCategories={knownCategories}
+          labels={CATEGORY_LABELS}
+          defaultValue={initial?.category ?? ""}
+        />
 
         <div className="space-y-1">
           <label htmlFor="frequency" className={labelClass}>

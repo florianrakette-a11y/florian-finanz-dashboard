@@ -3,10 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { parseEuroToCents } from "@/lib/format";
-import { Constants } from "@/lib/supabase/database.types";
-import type { Database } from "@/lib/supabase/database.types";
-
-type Category = Database["public"]["Enums"]["variable_expense_category"];
 
 export type FormState = { error?: string; ok?: boolean };
 
@@ -34,10 +30,9 @@ export async function createVariableExpense(
   }
   if (amount_cents <= 0) return { error: "Der Betrag muss größer als 0 sein." };
 
-  const category = String(formData.get("category") ?? "") as Category;
-  if (!Constants.public.Enums.variable_expense_category.includes(category)) {
-    return { error: "Ungültige Kategorie." };
-  }
+  let category = String(formData.get("category") ?? "").trim();
+  if (category === "__custom__") category = String(formData.get("custom_category") ?? "").trim();
+  if (!category) return { error: "Bitte eine Kategorie wählen oder eingeben." };
 
   const description = String(formData.get("description") ?? "").trim() || null;
 

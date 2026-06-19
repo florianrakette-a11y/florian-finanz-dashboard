@@ -2,18 +2,20 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { createVariableExpense, type FormState } from "./actions";
-import { Constants } from "@/lib/supabase/database.types";
+import { CategoryField } from "@/components/category-field";
+import { CATEGORY_LABELS } from "@/lib/categories";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900";
 const labelClass = "text-sm font-medium text-neutral-700";
 
-export const VARIABLE_CATEGORY_LABELS: Record<string, string> = {
-  tanken: "Tanken",
-  privat: "Privat",
-};
-
-export function VariableExpenseForm({ defaultDate }: { defaultDate: string }) {
+export function VariableExpenseForm({
+  defaultDate,
+  knownCategories,
+}: {
+  defaultDate: string;
+  knownCategories: string[];
+}) {
   const [state, formAction, isPending] = useActionState<FormState, FormData>(
     createVariableExpense,
     {},
@@ -46,21 +48,7 @@ export function VariableExpenseForm({ defaultDate }: { defaultDate: string }) {
           </label>
           <input id="amount" name="amount" required inputMode="decimal" placeholder="80,00" className={inputClass} />
         </div>
-        <div className="space-y-1">
-          <label htmlFor="category" className={labelClass}>
-            Kategorie
-          </label>
-          <select id="category" name="category" required defaultValue="" className={inputClass}>
-            <option value="" disabled>
-              Bitte wählen…
-            </option>
-            {Constants.public.Enums.variable_expense_category.map((c) => (
-              <option key={c} value={c}>
-                {VARIABLE_CATEGORY_LABELS[c] ?? c}
-              </option>
-            ))}
-          </select>
-        </div>
+        <CategoryField knownCategories={knownCategories} labels={CATEGORY_LABELS} />
         <div className="space-y-1">
           <label htmlFor="description" className={labelClass}>
             Beschreibung <span className="text-neutral-400">(optional)</span>

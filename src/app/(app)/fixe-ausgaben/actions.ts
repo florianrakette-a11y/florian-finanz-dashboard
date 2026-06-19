@@ -7,7 +7,6 @@ import { parseEuroToCents } from "@/lib/format";
 import { Constants } from "@/lib/supabase/database.types";
 import type { Database } from "@/lib/supabase/database.types";
 
-type Category = Database["public"]["Enums"]["fixed_expense_category"];
 type Frequency = Database["public"]["Enums"]["expense_frequency"];
 
 export type FormState = { error?: string; ok?: boolean };
@@ -30,10 +29,9 @@ function parseForm(formData: FormData) {
   const amount_cents = parseEuroToCents(String(formData.get("amount") ?? ""));
   if (amount_cents <= 0) throw new Error("Der Betrag muss größer als 0 sein.");
 
-  const category = String(formData.get("category") ?? "") as Category;
-  if (!Constants.public.Enums.fixed_expense_category.includes(category)) {
-    throw new Error("Ungültige Kategorie.");
-  }
+  let category = String(formData.get("category") ?? "").trim();
+  if (category === "__custom__") category = String(formData.get("custom_category") ?? "").trim();
+  if (!category) throw new Error("Bitte eine Kategorie wählen oder eingeben.");
 
   const frequency = String(formData.get("frequency") ?? "") as Frequency;
   if (!Constants.public.Enums.expense_frequency.includes(frequency)) {

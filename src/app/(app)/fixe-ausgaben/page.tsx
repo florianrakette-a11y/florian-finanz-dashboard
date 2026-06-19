@@ -17,7 +17,7 @@ import {
   updateFixedExpenseCategory,
 } from "./actions";
 import { CategoryCell } from "@/components/category-cell";
-import { Constants } from "@/lib/supabase/database.types";
+import { getKnownCategories, CATEGORY_LABELS } from "@/lib/categories";
 import type { Database } from "@/lib/supabase/database.types";
 
 type Row = Database["public"]["Tables"]["fixed_expenses"]["Row"];
@@ -42,6 +42,7 @@ function FixedRow({ r, knownCategories }: { r: Row; knownCategories: string[] })
         <CategoryCell
           value={r.category}
           options={knownCategories}
+          labels={CATEGORY_LABELS}
           action={updateFixedExpenseCategory.bind(null, r.id)}
         />
       </td>
@@ -142,13 +143,8 @@ export default async function FixeAusgabenPage({
   const dueThisMonth = all.filter((r) => isFixedDueInMonth(r, month));
   const monthTotal = dueThisMonth.reduce((s, r) => s + r.amount_cents, 0);
 
-  // Bekannte Kategorien fürs Inline-Dropdown: Standard + bereits verwendete.
-  const knownCategories = Array.from(
-    new Set([
-      ...Constants.public.Enums.fixed_expense_category,
-      ...all.map((r) => r.category),
-    ]),
-  );
+  // Gemeinsame, synchronisierte Kategorienliste (fix + variabel).
+  const knownCategories = await getKnownCategories(supabase);
 
   const prefill = sp.neu
     ? {
@@ -213,6 +209,7 @@ export default async function FixeAusgabenPage({
           <FixedExpenseForm
             action={createFixedExpense}
             prefill={prefill}
+            knownCategories={knownCategories}
             submitLabel="Hinzufügen"
             resetOnSuccess
           />
