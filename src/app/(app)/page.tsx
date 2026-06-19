@@ -49,7 +49,7 @@ export default async function OverviewPage({
 
   const [fixedRes, variableRes, incomeRes, invoicesRes, bankRes] = await Promise.all([
     supabase.from("fixed_expenses").select("*"),
-    supabase.from("variable_expenses").select("amount_cents").gte("date", from).lte("date", to),
+    supabase.from("variable_expenses").select("amount_cents, category").gte("date", from).lte("date", to),
     supabase.from("income_entries").select("amount_cents, status").eq("month", from),
     supabase.from("open_invoices").select("amount_cents, status, due_date"),
     supabase.from("bank_transactions").select("amount_cents").gte("date", from).lte("date", to),
@@ -73,6 +73,17 @@ export default async function OverviewPage({
 
   const plannedExpenses = fixedTotal + variableTotal;
   const plannedResult = incomePlanned - plannedExpenses;
+
+  // Ausgaben nach Kategorie (fixe fällige + variable) für den Monat.
+  const CATEGORY_LABELS: Record<string, string> = { tanken: "Tanken", privat: "Privat" };
+  const catMap = new Map<string, number>();
+  for (const r of fixedDue) catMap.set(r.category, (catMap.get(r.category) ?? 0) + r.amount_cents);
+  for (const r of variableRes.data ?? [])
+    catMap.set(r.category, (catMap.get(r.category) ?? 0) + r.amount_cents);
+  const categoryBreakdown = [...catMap.entries()]
+    .map(([category, total]) => ({ category, total }))
+    .sort((a, b) => b.total - a.total);
+  const maxCat = categoryBreakdown[0]?.total ?? 0;
 
   return (
     <div className="space-y-6">
@@ -172,6 +183,38 @@ export default async function OverviewPage({
           value={formatCents(openInvoicesTotal)}
           tone="red"
         />
+      </div>
+
+      {/* Ausgaben nach Kategorie */}
+      <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+        <h3 className="text-base font-semibold text-neutral-900">
+          Ausgaben nach Kategorie in {monthLabel(month)}
+        </h3>
+        <p className="mt-1 text-xs text-neutral-400">
+          Fixe (in diesem Monat fällige) und variable Ausgaben zusammengefasst.
+        </p>
+        {categoryBreakdown.length === 0 ? (
+          <p className="mt-3 text-sm text-neutral-500">Keine Ausgaben in diesem Monat.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {categoryBreakdown.map((c) => (
+              <li key={c.category}>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-neutral-800">
+                    {CATEGORY_LABELS[c.category] ?? c.category}
+                  </span>
+                  <span className="tabular-nums">{formatCents(c.total)}</span>
+                </div>
+                <div className="mt-1 h-2 overflow-hidden rounded bg-neutral-100">
+                  <div
+                    className="h-full rounded bg-neutral-800"
+                    style={{ width: `${maxCat > 0 ? (c.total / maxCat) * 100 : 0}%` }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Anstehende Fälligkeiten */}
