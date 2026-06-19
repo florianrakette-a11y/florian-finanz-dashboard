@@ -49,12 +49,27 @@ function parseForm(formData: FormData) {
     throw new Error("Fälligkeitstag muss zwischen 1 und 31 liegen.");
   }
 
+  const startRaw = String(formData.get("start_date") ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startRaw)) {
+    throw new Error("Bitte ein Datum der ersten Zahlung angeben.");
+  }
+  const start_date = startRaw;
+
   const endRaw = String(formData.get("end_date") ?? "").trim();
   const end_date = endRaw === "" ? null : endRaw;
 
   const active = formData.get("active") != null;
 
-  return { name, amount_cents, category, frequency, due_day_of_month, end_date, active };
+  return {
+    name,
+    amount_cents,
+    category,
+    frequency,
+    due_day_of_month,
+    start_date,
+    end_date,
+    active,
+  };
 }
 
 export async function createFixedExpense(

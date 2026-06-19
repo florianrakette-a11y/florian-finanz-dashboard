@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { formatCents, parseEuroToCents } from "@/lib/format";
+import { formatCents, parseEuroToCents, centsToInput } from "@/lib/format";
 import {
   currentMonth,
   isValidMonth,
@@ -38,6 +38,7 @@ function TransactionTable({
             <th className="px-4 py-3 font-medium">Gegenseite</th>
             <th className="px-4 py-3 font-medium">Verwendungszweck</th>
             <th className="px-4 py-3 text-right font-medium">Betrag</th>
+            <th className="px-4 py-3 text-right font-medium"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-neutral-100">
@@ -68,6 +69,20 @@ function TransactionTable({
               >
                 {formatCents(t.amount_cents)}
               </td>
+              <td className="px-4 py-3 text-right">
+                <Link
+                  href={`/fixe-ausgaben?${new URLSearchParams({
+                    neu: "1",
+                    name: t.counterpart ?? "",
+                    amount: centsToInput(Math.abs(t.amount_cents)),
+                    tag: String(Number(t.date.slice(8, 10))),
+                    start: t.date,
+                  }).toString()}`}
+                  className="whitespace-nowrap text-sm font-medium text-neutral-600 hover:text-neutral-900"
+                >
+                  → fixe Ausgabe
+                </Link>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -83,6 +98,7 @@ function TransactionTable({
             >
               {formatCents(total)}
             </td>
+            <td />
           </tr>
         </tfoot>
       </table>

@@ -15,11 +15,18 @@ const labelClass = "text-sm font-medium text-neutral-700";
 export function FixedExpenseForm({
   action,
   initial,
+  prefill,
   submitLabel,
   resetOnSuccess = false,
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
   initial?: Row;
+  prefill?: {
+    name?: string;
+    amount?: string;
+    due_day?: number;
+    start_date?: string;
+  };
   submitLabel: string;
   resetOnSuccess?: boolean;
 }) {
@@ -46,7 +53,7 @@ export function FixedExpenseForm({
             id="name"
             name="name"
             required
-            defaultValue={initial?.name ?? ""}
+            defaultValue={initial?.name ?? prefill?.name ?? ""}
             placeholder="z. B. Miete Büro"
             className={inputClass}
           />
@@ -61,7 +68,9 @@ export function FixedExpenseForm({
             name="amount"
             required
             inputMode="decimal"
-            defaultValue={initial ? centsToInput(initial.amount_cents) : ""}
+            defaultValue={
+              initial ? centsToInput(initial.amount_cents) : (prefill?.amount ?? "")
+            }
             placeholder="172,00"
             className={inputClass}
           />
@@ -119,7 +128,21 @@ export function FixedExpenseForm({
             min={1}
             max={31}
             required
-            defaultValue={initial?.due_day_of_month ?? 1}
+            defaultValue={initial?.due_day_of_month ?? prefill?.due_day ?? 1}
+            className={inputClass}
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="start_date" className={labelClass}>
+            Erste Zahlung am
+          </label>
+          <input
+            id="start_date"
+            name="start_date"
+            type="date"
+            required
+            defaultValue={initial?.start_date ?? prefill?.start_date ?? ""}
             className={inputClass}
           />
         </div>
