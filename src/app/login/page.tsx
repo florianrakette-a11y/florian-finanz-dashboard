@@ -58,6 +58,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               required
+              suppressHydrationWarning
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -76,6 +77,7 @@ export default function LoginPage() {
               id="password"
               type="password"
               required
+              suppressHydrationWarning
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
