@@ -200,6 +200,7 @@ export type Database = {
         Row: {
           amount_cents: number
           created_at: string
+          description: string | null
           due_date: string | null
           email_message_id: string | null
           iban: string | null
@@ -214,6 +215,7 @@ export type Database = {
         Insert: {
           amount_cents: number
           created_at?: string
+          description?: string | null
           due_date?: string | null
           email_message_id?: string | null
           iban?: string | null
@@ -228,6 +230,7 @@ export type Database = {
         Update: {
           amount_cents?: number
           created_at?: string
+          description?: string | null
           due_date?: string | null
           email_message_id?: string | null
           iban?: string | null

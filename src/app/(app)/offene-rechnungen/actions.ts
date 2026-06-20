@@ -35,7 +35,7 @@ export async function createInvoice(
   if (amount_cents <= 0) return { error: "Der Betrag muss größer als 0 sein." };
 
   const dueRaw = String(formData.get("due_date") ?? "").trim();
-  const purpose = String(formData.get("purpose") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
   const iban = String(formData.get("iban") ?? "").trim() || null;
 
   const supabase = await getAuthedClient();
@@ -43,7 +43,7 @@ export async function createInvoice(
     recipient,
     amount_cents,
     due_date: dueRaw === "" ? null : dueRaw,
-    purpose,
+    description,
     iban,
     status: "open",
     source: "manual",
@@ -52,6 +52,13 @@ export async function createInvoice(
 
   revalidatePath("/offene-rechnungen");
   return { ok: true };
+}
+
+export async function updateInvoiceDescription(id: string, text: string) {
+  const value = text.trim() === "" ? null : text.trim();
+  const supabase = await getAuthedClient();
+  await supabase.from("open_invoices").update({ description: value }).eq("id", id);
+  revalidatePath("/offene-rechnungen");
 }
 
 export async function setInvoiceStatus(formData: FormData) {

@@ -15,7 +15,9 @@ import {
   createInvoiceFromFailedDebit,
   deleteInvoice,
   setInvoiceStatus,
+  updateInvoiceDescription,
 } from "./actions";
+import { TextCell } from "@/components/text-cell";
 
 const STATUS_LABEL: Record<string, string> = {
   open: "Offen",
@@ -29,6 +31,7 @@ type Invoice = {
   amount_cents: number;
   due_date: string | null;
   purpose: string | null;
+  description: string | null;
   status: string;
 };
 
@@ -36,11 +39,18 @@ function InvoiceRow({ inv }: { inv: Invoice }) {
   return (
     <tr className={inv.status === "paid" ? "text-neutral-400" : ""}>
       <td className="px-4 py-3 font-medium">
-        {inv.recipient}
+        <div>{inv.recipient}</div>
+        <div className="mt-0.5">
+          <TextCell
+            value={inv.description}
+            action={updateInvoiceDescription.bind(null, inv.id)}
+            placeholder="Beschreibung hinzufügen…"
+          />
+        </div>
         {inv.purpose && (
-          <span className="block text-xs font-normal text-neutral-400 line-clamp-1">
+          <div className="text-[11px] font-normal text-neutral-300 line-clamp-1">
             {inv.purpose}
-          </span>
+          </div>
         )}
       </td>
       <td className="px-4 py-3 whitespace-nowrap tabular-nums">

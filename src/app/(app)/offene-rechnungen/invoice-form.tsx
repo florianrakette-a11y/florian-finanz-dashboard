@@ -46,10 +46,15 @@ export function InvoiceForm() {
           <input id="iban" name="iban" className={inputClass} />
         </div>
         <div className="space-y-1 sm:col-span-2">
-          <label htmlFor="purpose" className={labelClass}>
-            Verwendungszweck <span className="text-neutral-400">(optional)</span>
+          <label htmlFor="description" className={labelClass}>
+            Beschreibung <span className="text-neutral-400">(optional, wofür)</span>
           </label>
-          <input id="purpose" name="purpose" className={inputClass} />
+          <input
+            id="description"
+            name="description"
+            placeholder="z. B. Nachzahlung Beiträge 2024"
+            className={inputClass}
+          />
         </div>
       </div>
 
