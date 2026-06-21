@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Finanz Dashboard",
   description: "Privates Finanz-Dashboard",
+  appleWebApp: { capable: true, title: "Finanz", statusBarStyle: "default" },
 };
 
 export default function RootLayout({
