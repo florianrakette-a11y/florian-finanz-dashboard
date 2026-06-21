@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatCents } from "@/lib/format";
 import {
@@ -6,12 +5,12 @@ import {
   isValidMonth,
   monthBounds,
   monthLabel,
-  shiftMonth,
 } from "@/lib/month";
 import { VariableExpenseForm } from "./variable-expense-form";
-import { DeleteButton } from "./delete-button";
+import { DeleteButton } from "@/components/delete-button";
 import { deleteVariableExpense, updateVariableExpenseCategory } from "./actions";
 import { CategoryCell } from "@/components/category-cell";
+import { MonthNav } from "@/components/month-nav";
 import { getKnownCategories, CATEGORY_LABELS } from "@/lib/categories";
 
 export default async function VariableAusgabenPage({
@@ -50,21 +49,7 @@ export default async function VariableAusgabenPage({
         </div>
       </div>
 
-      <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3">
-        <Link
-          href={`/variable-ausgaben?month=${shiftMonth(month, -1)}`}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
-        >
-          ← {monthLabel(shiftMonth(month, -1))}
-        </Link>
-        <div className="text-base font-semibold text-neutral-900">{monthLabel(month)}</div>
-        <Link
-          href={`/variable-ausgaben?month=${shiftMonth(month, 1)}`}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
-        >
-          {monthLabel(shiftMonth(month, 1))} →
-        </Link>
-      </div>
+      <MonthNav basePath="/variable-ausgaben" month={month} />
 
       {error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">

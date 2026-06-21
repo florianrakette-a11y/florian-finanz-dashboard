@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatCents } from "@/lib/format";
 import {
@@ -6,16 +5,16 @@ import {
   isValidMonth,
   monthBounds,
   monthLabel,
-  shiftMonth,
 } from "@/lib/month";
 import {
   IncomeForm,
   INCOME_SOURCE_LABELS,
   INCOME_STATUS_LABELS,
 } from "./income-form";
-import { DeleteButton } from "./delete-button";
+import { DeleteButton } from "@/components/delete-button";
 import { deleteIncome, setIncomeStatus, updateIncomeDate } from "./actions";
 import { DateCell } from "@/components/date-cell";
+import { MonthNav } from "@/components/month-nav";
 
 export default async function EinnahmenPage({
   searchParams,
@@ -72,21 +71,7 @@ export default async function EinnahmenPage({
         </div>
       </div>
 
-      <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3">
-        <Link
-          href={`/einnahmen?month=${shiftMonth(month, -1)}`}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
-        >
-          ← {monthLabel(shiftMonth(month, -1))}
-        </Link>
-        <div className="text-base font-semibold text-neutral-900">{monthLabel(month)}</div>
-        <Link
-          href={`/einnahmen?month=${shiftMonth(month, 1)}`}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
-        >
-          {monthLabel(shiftMonth(month, 1))} →
-        </Link>
-      </div>
+      <MonthNav basePath="/einnahmen" month={month} />
 
       {error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">

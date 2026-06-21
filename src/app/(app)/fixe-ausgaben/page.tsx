@@ -5,11 +5,10 @@ import {
   currentMonth,
   isValidMonth,
   monthLabel,
-  shiftMonth,
 } from "@/lib/month";
 import { isFixedDueInMonth } from "@/lib/fixed-expenses";
 import { FixedExpenseForm } from "./fixed-expense-form";
-import { DeleteButton } from "./delete-button";
+import { DeleteButton } from "@/components/delete-button";
 import {
   createFixedExpense,
   deleteFixedExpense,
@@ -17,6 +16,7 @@ import {
   updateFixedExpenseCategory,
 } from "./actions";
 import { CategoryCell } from "@/components/category-cell";
+import { MonthNav } from "@/components/month-nav";
 import { getKnownCategories, CATEGORY_LABELS } from "@/lib/categories";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -165,21 +165,7 @@ export default async function FixeAusgabenPage({
         </div>
       </div>
 
-      <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3">
-        <Link
-          href={`/fixe-ausgaben?month=${shiftMonth(month, -1)}`}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
-        >
-          ← {monthLabel(shiftMonth(month, -1))}
-        </Link>
-        <div className="text-base font-semibold text-neutral-900">{monthLabel(month)}</div>
-        <Link
-          href={`/fixe-ausgaben?month=${shiftMonth(month, 1)}`}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
-        >
-          {monthLabel(shiftMonth(month, 1))} →
-        </Link>
-      </div>
+      <MonthNav basePath="/fixe-ausgaben" month={month} />
 
       {dueThisMonth.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center text-sm text-neutral-500">

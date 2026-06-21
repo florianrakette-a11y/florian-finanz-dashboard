@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth";
 import { parseEuroToCents } from "@/lib/format";
 import { isValidMonth } from "@/lib/month";
 import { Constants } from "@/lib/supabase/database.types";
@@ -10,15 +10,6 @@ import type { Database } from "@/lib/supabase/database.types";
 type Status = Database["public"]["Enums"]["income_status"];
 
 export type FormState = { error?: string; ok?: boolean };
-
-async function getAuthedClient() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Nicht angemeldet.");
-  return supabase;
-}
 
 export async function createIncome(
   _prev: FormState,
@@ -49,7 +40,7 @@ export async function createIncome(
   const receiptRaw = String(formData.get("receipt_date") ?? "").trim();
   const receipt_date = receiptRaw === "" ? null : receiptRaw;
 
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   const { error } = await supabase.from("income_entries").insert({
     source,
     status,
@@ -65,7 +56,7 @@ export async function createIncome(
 
 export async function updateIncomeDate(id: string, date: string | null) {
   const value = date && date.trim() !== "" ? date.trim() : null;
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   await supabase.from("income_entries").update({ receipt_date: value }).eq("id", id);
   revalidatePath("/einnahmen");
 }
@@ -74,14 +65,14 @@ export async function setIncomeStatus(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "") as Status;
   if (!Constants.public.Enums.income_status.includes(status)) return;
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   await supabase.from("income_entries").update({ status }).eq("id", id);
   revalidatePath("/einnahmen");
 }
 
 export async function deleteIncome(formData: FormData) {
   const id = String(formData.get("id") ?? "");
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   await supabase.from("income_entries").delete().eq("id", id);
   revalidatePath("/einnahmen");
 }

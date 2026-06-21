@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatCents } from "@/lib/format";
 import {
@@ -6,11 +5,10 @@ import {
   isValidMonth,
   monthBounds,
   monthLabel,
-  shiftMonth,
 } from "@/lib/month";
 import { detectFailedDebits } from "@/lib/failed-debits";
 import { InvoiceForm } from "./invoice-form";
-import { DeleteButton } from "./delete-button";
+import { DeleteButton } from "@/components/delete-button";
 import {
   createInvoiceFromFailedDebit,
   deleteInvoice,
@@ -18,6 +16,7 @@ import {
   updateInvoiceDescription,
 } from "./actions";
 import { TextCell } from "@/components/text-cell";
+import { MonthNav } from "@/components/month-nav";
 
 const STATUS_LABEL: Record<string, string> = {
   open: "Offen",
@@ -179,23 +178,7 @@ export default async function OffeneRechnungenPage({
       </div>
 
       {/* Monats-Navigation */}
-      <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3">
-        <Link
-          href={`/offene-rechnungen?month=${shiftMonth(month, -1)}`}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
-        >
-          ← {monthLabel(shiftMonth(month, -1))}
-        </Link>
-        <div className="text-base font-semibold text-neutral-900">
-          {monthLabel(month)}
-        </div>
-        <Link
-          href={`/offene-rechnungen?month=${shiftMonth(month, 1)}`}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
-        >
-          {monthLabel(shiftMonth(month, 1))} →
-        </Link>
-      </div>
+      <MonthNav basePath="/offene-rechnungen" month={month} />
 
       {/* Fehlgeschlagene Abbuchungen als Vorschläge */}
       {suggestions.length > 0 && (

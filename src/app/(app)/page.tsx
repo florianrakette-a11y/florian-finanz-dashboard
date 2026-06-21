@@ -6,9 +6,9 @@ import {
   isValidMonth,
   monthBounds,
   monthLabel,
-  shiftMonth,
 } from "@/lib/month";
 import { isFixedDueInMonth } from "@/lib/fixed-expenses";
+import { MonthNav } from "@/components/month-nav";
 
 function KpiCard({
   href,
@@ -95,21 +95,7 @@ export default async function OverviewPage({
       </div>
 
       {/* Monats-Navigation */}
-      <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3">
-        <Link
-          href={`/?month=${shiftMonth(month, -1)}`}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
-        >
-          ← {monthLabel(shiftMonth(month, -1))}
-        </Link>
-        <div className="text-base font-semibold text-neutral-900">{monthLabel(month)}</div>
-        <Link
-          href={`/?month=${shiftMonth(month, 1)}`}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
-        >
-          {monthLabel(shiftMonth(month, 1))} →
-        </Link>
-      </div>
+      <MonthNav basePath="/" month={month} />
 
       {/* Soll / Ist */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

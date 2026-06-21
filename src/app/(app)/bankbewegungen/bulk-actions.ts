@@ -1,21 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth";
 
 export type BulkResult = { ok: boolean; message: string };
 
-async function getAuthedClient() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Nicht angemeldet.");
-  return supabase;
-}
-
 async function loadTxns(
-  supabase: Awaited<ReturnType<typeof getAuthedClient>>,
+  supabase: Awaited<ReturnType<typeof requireUser>>,
   ids: string[],
 ) {
   const { data } = await supabase.from("bank_transactions").select("*").in("id", ids);
@@ -30,7 +21,7 @@ function refreshTargets(...paths: string[]) {
 /** Ausgewählte Bewegungen als variable Ausgaben übernehmen (Standard-Kategorie „privat"). */
 export async function addToVariableExpenses(ids: string[]): Promise<BulkResult> {
   if (ids.length === 0) return { ok: false, message: "Nichts ausgewählt." };
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   const txns = await loadTxns(supabase, ids);
 
   let created = 0;
@@ -66,7 +57,7 @@ export async function addToVariableExpenses(ids: string[]): Promise<BulkResult> 
 /** Ausgewählte Bewegungen als fixe Ausgaben übernehmen (Standard: monatlich). */
 export async function addToFixedExpenses(ids: string[]): Promise<BulkResult> {
   if (ids.length === 0) return { ok: false, message: "Nichts ausgewählt." };
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   const txns = await loadTxns(supabase, ids);
 
   let created = 0;
@@ -103,7 +94,7 @@ export async function addToFixedExpenses(ids: string[]): Promise<BulkResult> {
 /** Ausgewählte GELDEINGÄNGE (positiv) als Einnahmen übernehmen. */
 export async function addToIncome(ids: string[]): Promise<BulkResult> {
   if (ids.length === 0) return { ok: false, message: "Nichts ausgewählt." };
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   const txns = await loadTxns(supabase, ids);
 
   let created = 0;

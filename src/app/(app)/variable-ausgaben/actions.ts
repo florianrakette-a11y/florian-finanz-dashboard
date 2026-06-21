@@ -1,19 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth";
 import { parseEuroToCents } from "@/lib/format";
 
 export type FormState = { error?: string; ok?: boolean };
-
-async function getAuthedClient() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Nicht angemeldet.");
-  return supabase;
-}
 
 export async function createVariableExpense(
   _prev: FormState,
@@ -36,7 +27,7 @@ export async function createVariableExpense(
 
   const description = String(formData.get("description") ?? "").trim() || null;
 
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   const { error } = await supabase.from("variable_expenses").insert({
     date,
     amount_cents,
@@ -53,14 +44,14 @@ export async function createVariableExpense(
 export async function updateVariableExpenseCategory(id: string, category: string) {
   const c = category.trim();
   if (!c) return;
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   await supabase.from("variable_expenses").update({ category: c }).eq("id", id);
   revalidatePath("/variable-ausgaben");
 }
 
 export async function deleteVariableExpense(formData: FormData) {
   const id = String(formData.get("id") ?? "");
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   await supabase.from("variable_expenses").delete().eq("id", id);
   revalidatePath("/variable-ausgaben");
 }

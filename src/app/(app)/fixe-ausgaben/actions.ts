@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth";
 import { parseEuroToCents } from "@/lib/format";
 import { Constants } from "@/lib/supabase/database.types";
 import type { Database } from "@/lib/supabase/database.types";
@@ -12,15 +12,6 @@ type Frequency = Database["public"]["Enums"]["expense_frequency"];
 export type FormState = { error?: string; ok?: boolean };
 
 /** Stellt sicher, dass ein Nutzer angemeldet ist (Server Actions sind per POST direkt erreichbar). */
-async function getAuthedClient() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Nicht angemeldet.");
-  return supabase;
-}
-
 /** Liest und validiert die Formularfelder einer fixen Ausgabe. */
 function parseForm(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -81,7 +72,7 @@ export async function createFixedExpense(
     return { error: e instanceof Error ? e.message : "Eingabe ungültig." };
   }
 
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   const { error } = await supabase.from("fixed_expenses").insert(values);
   if (error) return { error: "Speichern fehlgeschlagen: " + error.message };
 
@@ -101,7 +92,7 @@ export async function updateFixedExpense(
     return { error: e instanceof Error ? e.message : "Eingabe ungültig." };
   }
 
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   const { error } = await supabase
     .from("fixed_expenses")
     .update(values)
@@ -115,14 +106,14 @@ export async function updateFixedExpense(
 export async function updateFixedExpenseCategory(id: string, category: string) {
   const c = category.trim();
   if (!c) return;
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   await supabase.from("fixed_expenses").update({ category: c }).eq("id", id);
   revalidatePath("/fixe-ausgaben");
 }
 
 export async function deleteFixedExpense(formData: FormData) {
   const id = String(formData.get("id") ?? "");
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   await supabase.from("fixed_expenses").delete().eq("id", id);
   revalidatePath("/fixe-ausgaben");
 }
@@ -130,7 +121,7 @@ export async function deleteFixedExpense(formData: FormData) {
 export async function toggleFixedExpenseActive(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const active = String(formData.get("active") ?? "") === "true";
-  const supabase = await getAuthedClient();
+  const supabase = await requireUser();
   await supabase.from("fixed_expenses").update({ active: !active }).eq("id", id);
   revalidatePath("/fixe-ausgaben");
 }

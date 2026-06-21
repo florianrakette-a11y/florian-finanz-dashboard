@@ -6,10 +6,10 @@ import {
   isValidMonth,
   monthBounds,
   monthLabel,
-  shiftMonth,
 } from "@/lib/month";
 import { SyncButton } from "./sync-button";
 import { TransactionList } from "./transaction-list";
+import { MonthNav } from "@/components/month-nav";
 
 const searchInputClass =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900";
@@ -106,7 +106,6 @@ export default async function BankbewegungenPage({
   const { data: txns, error } = await query.order("date", { ascending: false });
 
   const rows = txns ?? [];
-  const isCurrent = month === currentMonth();
 
   return (
     <div className="space-y-6">
@@ -119,28 +118,7 @@ export default async function BankbewegungenPage({
 
       <SearchBar q="" />
 
-      <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3">
-        <Link
-          href={`/bankbewegungen?month=${shiftMonth(month, -1)}`}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
-        >
-          ← {monthLabel(shiftMonth(month, -1))}
-        </Link>
-        <div className="text-center">
-          <div className="text-base font-semibold text-neutral-900">{monthLabel(month)}</div>
-          {!isCurrent && (
-            <Link href="/bankbewegungen" className="text-xs text-neutral-500 hover:text-neutral-900">
-              → zum aktuellen Monat
-            </Link>
-          )}
-        </div>
-        <Link
-          href={`/bankbewegungen?month=${shiftMonth(month, 1)}`}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
-        >
-          {monthLabel(shiftMonth(month, 1))} →
-        </Link>
-      </div>
+      <MonthNav basePath="/bankbewegungen" month={month} />
 
       <div className="flex items-center justify-between gap-4">
         <div className="flex gap-1">
