@@ -103,3 +103,48 @@ export function bbAmountToCents(amount: string): number {
 export function bbDateOnly(dateTime: string): string {
   return dateTime.slice(0, 10);
 }
+
+export type BBReceiptType = "invoice inbound" | "invoice outbound" | "credit inbound" | "credit outbound";
+
+/**
+ * Lädt einen Beleg (PDF/Bild als base64) zu Buchhaltungsbutler hoch (/receipts/upload).
+ * Gibt den von BB vergebenen Dateinamen zurück. Limit: 10 Requests/Minute.
+ */
+export async function uploadReceipt(opts: {
+  fileBase64: string; // ohne data:-Präfix
+  fileName: string;
+  type: BBReceiptType;
+  amount?: number; // Brutto in Euro (positiv), wird zu "12.30"
+  date?: string; // YYYY-MM-DD
+  counterparty?: string;
+  invoiceNumber?: string;
+  vatRate?: string; // "19.00" | "0" | ""
+}): Promise<{ fileName: string }> {
+  const apiKey = process.env.BB_API_KEY;
+  if (!apiKey) throw new Error("BB_API_KEY fehlt in der Umgebung.");
+
+  const body: Record<string, unknown> = {
+    api_key: apiKey,
+    file: opts.fileBase64,
+    file_name: opts.fileName,
+    type: opts.type,
+  };
+  if (opts.amount != null) body.amount = opts.amount.toFixed(2);
+  if (opts.date) body.date = opts.date;
+  if (opts.counterparty) body.counterparty = opts.counterparty;
+  if (opts.invoiceNumber) body.invoice_number = opts.invoiceNumber;
+  if (opts.vatRate != null) body.vat_rate = opts.vatRate;
+
+  const res = await fetch(BASE + "/receipts/upload", {
+    method: "POST",
+    headers: { Authorization: authHeader(), "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json?.success !== true) {
+    throw new Error(`Buchhaltungsbutler-Upload fehlgeschlagen (HTTP ${res.status}): ${json?.message || "unbekannt"}`);
+  }
+  const fileName = json?.data?.file_name ?? json?.data?.filename ?? json?.file_name ?? "";
+  return { fileName: String(fileName) };
+}

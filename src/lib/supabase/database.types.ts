@@ -14,6 +14,448 @@ export type Database = {
   }
   public: {
     Tables: {
+      companies: {
+        Row: {
+          bank_name: string | null
+          bic: string | null
+          city: string | null
+          created_at: string
+          email: string | null
+          first_name: string | null
+          iban: string | null
+          id: number
+          invoice_counter: number
+          invoice_footer_text: string | null
+          invoice_intro_text: string | null
+          invoice_prefix: string
+          is_default: boolean
+          last_name: string | null
+          logo_url: string | null
+          name: string
+          owner: string | null
+          phone: string | null
+          street: string | null
+          tax_number: string | null
+          updated_at: string
+          vat_id: string | null
+          website: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          bank_name?: string | null
+          bic?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          iban?: string | null
+          id?: number
+          invoice_counter?: number
+          invoice_footer_text?: string | null
+          invoice_intro_text?: string | null
+          invoice_prefix?: string
+          is_default?: boolean
+          last_name?: string | null
+          logo_url?: string | null
+          name: string
+          owner?: string | null
+          phone?: string | null
+          street?: string | null
+          tax_number?: string | null
+          updated_at?: string
+          vat_id?: string | null
+          website?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          bank_name?: string | null
+          bic?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          iban?: string | null
+          id?: number
+          invoice_counter?: number
+          invoice_footer_text?: string | null
+          invoice_intro_text?: string | null
+          invoice_prefix?: string
+          is_default?: boolean
+          last_name?: string | null
+          logo_url?: string | null
+          name?: string
+          owner?: string | null
+          phone?: string | null
+          street?: string | null
+          tax_number?: string | null
+          updated_at?: string
+          vat_id?: string | null
+          website?: string | null
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
+      customers: {
+        Row: {
+          city: string | null
+          company_id: number | null
+          company_name: string | null
+          country: string | null
+          created_at: string
+          customer_number: string
+          email: string | null
+          first_name: string | null
+          id: number
+          last_name: string | null
+          notes: string | null
+          phone: string | null
+          street: string | null
+          tax_id: string | null
+          tax_region: string
+          updated_at: string
+          zip_code: string | null
+        }
+        Insert: {
+          city?: string | null
+          company_id?: number | null
+          company_name?: string | null
+          country?: string | null
+          created_at?: string
+          customer_number: string
+          email?: string | null
+          first_name?: string | null
+          id?: number
+          last_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          street?: string | null
+          tax_id?: string | null
+          tax_region?: string
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Update: {
+          city?: string | null
+          company_id?: number | null
+          company_name?: string | null
+          country?: string | null
+          created_at?: string
+          customer_number?: string
+          email?: string | null
+          first_name?: string | null
+          id?: number
+          last_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          street?: string | null
+          tax_id?: string | null
+          tax_region?: string
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          company_id: number | null
+          created_at: string
+          customer_id: number
+          due_date: string
+          id: number
+          invoice_date: string
+          invoice_number: string
+          is_reverse_charge: boolean
+          notes: string | null
+          paid_amount: number
+          paid_date: string | null
+          payment_term_days: number
+          pdf_url: string | null
+          service_end_date: string | null
+          service_start_date: string | null
+          status: string
+          subtotal: number
+          total: number
+          updated_at: string
+          vat_amount: number
+          vat_rate: number
+        }
+        Insert: {
+          company_id?: number | null
+          created_at?: string
+          customer_id: number
+          due_date: string
+          id?: number
+          invoice_date: string
+          invoice_number: string
+          is_reverse_charge?: boolean
+          notes?: string | null
+          paid_amount?: number
+          paid_date?: string | null
+          payment_term_days?: number
+          pdf_url?: string | null
+          service_end_date?: string | null
+          service_start_date?: string | null
+          status?: string
+          subtotal: number
+          total: number
+          updated_at?: string
+          vat_amount: number
+          vat_rate?: number
+        }
+        Update: {
+          company_id?: number | null
+          created_at?: string
+          customer_id?: number
+          due_date?: string
+          id?: number
+          invoice_date?: string
+          invoice_number?: string
+          is_reverse_charge?: boolean
+          notes?: string | null
+          paid_amount?: number
+          paid_date?: string | null
+          payment_term_days?: number
+          pdf_url?: string | null
+          service_end_date?: string | null
+          service_start_date?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_items: {
+        Row: {
+          created_at: string
+          description: string
+          details: string | null
+          id: number
+          invoice_id: number
+          position: number
+          quantity: number
+          total: number
+          unit: string
+          unit_price: number
+          vat_rate: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          details?: string | null
+          id?: number
+          invoice_id: number
+          position: number
+          quantity: number
+          total: number
+          unit?: string
+          unit_price: number
+          vat_rate?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          details?: string | null
+          id?: number
+          invoice_id?: number
+          position?: number
+          quantity?: number
+          total?: number
+          unit?: string
+          unit_price?: number
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_templates: {
+        Row: {
+          created_at: string
+          customer_id: number | null
+          description: string | null
+          id: number
+          is_reverse_charge: boolean
+          name: string
+          notes: string | null
+          payment_term_days: number
+          updated_at: string
+          vat_rate: number
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: number | null
+          description?: string | null
+          id?: number
+          is_reverse_charge?: boolean
+          name: string
+          notes?: string | null
+          payment_term_days?: number
+          updated_at?: string
+          vat_rate?: number
+        }
+        Update: {
+          created_at?: string
+          customer_id?: number | null
+          description?: string | null
+          id?: number
+          is_reverse_charge?: boolean
+          name?: string
+          notes?: string | null
+          payment_term_days?: number
+          updated_at?: string
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_templates_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_items: {
+        Row: {
+          created_at: string
+          description: string
+          details: string | null
+          id: number
+          position: number
+          quantity: number
+          template_id: number
+          unit: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          details?: string | null
+          id?: number
+          position: number
+          quantity: number
+          template_id: number
+          unit?: string
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          details?: string | null
+          id?: number
+          position?: number
+          quantity?: number
+          template_id?: number
+          unit?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminders: {
+        Row: {
+          created_at: string
+          id: number
+          invoice_id: number
+          new_due_date: string | null
+          pdf_url: string | null
+          reminder_date: string
+          reminder_fee: number
+          reminder_level: number
+          reminder_number: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          invoice_id: number
+          new_due_date?: string | null
+          pdf_url?: string | null
+          reminder_date: string
+          reminder_fee?: number
+          reminder_level: number
+          reminder_number: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          invoice_id?: number
+          new_due_date?: string | null
+          pdf_url?: string | null
+          reminder_date?: string
+          reminder_fee?: number
+          reminder_level?: number
+          reminder_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_settings: {
+        Row: {
+          id: number
+          key: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          id?: number
+          key: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          id?: number
+          key?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
       bank_transactions: {
         Row: {
           amount_cents: number

@@ -10,7 +10,9 @@ const links = [
   { href: "/offene-rechnungen", label: "Offene Rechnungen" },
   { href: "/bankbewegungen", label: "Bankbewegungen" },
   { href: "/einnahmen", label: "Einnahmen" },
+  { href: "/scannen", label: "Belege scannen" },
   { href: "/belege", label: "Belege" },
+  { href: "/kunden", label: "Kunden" },
 ];
 
 export function Nav() {
