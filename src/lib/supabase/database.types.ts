@@ -694,6 +694,45 @@ export type Database = {
           },
         ]
       }
+      email_imports: {
+        Row: {
+          amount_cents: number | null
+          created_at: string
+          id: string
+          mailbox: string
+          message_id: string
+          received_at: string | null
+          sender: string | null
+          status: string
+          storage_path: string
+          subject: string | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string
+          id?: string
+          mailbox: string
+          message_id: string
+          received_at?: string | null
+          sender?: string | null
+          status?: string
+          storage_path: string
+          subject?: string | null
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string
+          id?: string
+          mailbox?: string
+          message_id?: string
+          received_at?: string | null
+          sender?: string | null
+          status?: string
+          storage_path?: string
+          subject?: string | null
+        }
+        Relationships: []
+      }
       receipt_files: {
         Row: {
           id: string

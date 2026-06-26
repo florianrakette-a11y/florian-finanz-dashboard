@@ -11,6 +11,7 @@ const links = [
   { href: "/bankbewegungen", label: "Bankbewegungen" },
   { href: "/einnahmen", label: "Einnahmen" },
   { href: "/scannen", label: "Belege scannen" },
+  { href: "/posteingang", label: "Posteingang" },
   { href: "/belege", label: "Belege" },
   { href: "/kunden", label: "Kunden" },
 ];
