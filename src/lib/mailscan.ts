@@ -165,11 +165,6 @@ function guessAmountCents(mail: ParsedMail): number | null {
 
 type ScanResult = { mailbox: string; found: number; skipped: number; dunningMatched?: number; error?: string };
 
-function startOfMonth(): Date {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1);
-}
-
 // Läuft den BODYSTRUCTURE-Baum ab (ohne die Mail herunterzuladen) und sucht ein PDF.
 type BodyNode = { type?: string; subtype?: string; parameters?: Record<string, string>; dispositionParameters?: Record<string, string>; childNodes?: BodyNode[] };
 function structureHasPdf(node: BodyNode | undefined): boolean {
@@ -184,8 +179,8 @@ function textLooksLikeReceipt(subject: string, from: string): boolean {
   return RECEIPT_RX.test(subject) || RECEIPT_RX.test(from);
 }
 
-/** Scannt ein Postfach (INBOX) ab dem 1. des aktuellen Monats und legt Belege als 'pending' an. */
-async function scanMailbox(box: Mailbox): Promise<ScanResult> {
+/** Scannt ein Postfach (INBOX) ab `since` und legt Belege als 'pending' an. */
+async function scanMailbox(box: Mailbox, since: Date): Promise<ScanResult> {
   const supabase = createAdminClient();
   const client = new ImapFlow({
     host: box.host,
@@ -214,7 +209,7 @@ async function scanMailbox(box: Mailbox): Promise<ScanResult> {
       const candidates: number[] = [];
       const dunningUids: number[] = [];
       for await (const m of client.fetch(
-        { since: startOfMonth() },
+        { since },
         { uid: true, envelope: true, bodyStructure: true },
       )) {
         const subject = m.envelope?.subject || "";
@@ -348,12 +343,13 @@ async function scanMailbox(box: Mailbox): Promise<ScanResult> {
   return { mailbox: box.name, found, skipped, dunningMatched };
 }
 
-/** Scannt alle konfigurierten Postfächer (aktueller Monat). Fehler je Postfach werden gesammelt, nicht geworfen. */
-export async function scanAllMailboxes(): Promise<ScanResult[]> {
+/** Scannt alle konfigurierten Postfächer der letzten `sinceHours` Stunden. Fehler je Postfach gesammelt, nicht geworfen. */
+export async function scanAllMailboxes(sinceHours = 36): Promise<ScanResult[]> {
+  const since = new Date(Date.now() - sinceHours * 3600_000);
   const results: ScanResult[] = [];
   for (const box of configuredMailboxes()) {
     try {
-      results.push(await scanMailbox(box));
+      results.push(await scanMailbox(box, since));
     } catch (e) {
       results.push({ mailbox: box.name, found: 0, skipped: 0, error: e instanceof Error ? e.message : "unbekannt" });
     }

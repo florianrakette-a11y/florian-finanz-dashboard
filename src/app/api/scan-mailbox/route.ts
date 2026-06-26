@@ -14,8 +14,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   try {
-    const results = await scanAllMailboxes();
-    return NextResponse.json({ ok: true, results });
+    // Standard: letzte 36 Stunden (täglicher Lauf). Manueller Nachlauf via ?hours=720 (z. B. ganzer Monat).
+    const hoursParam = Number(req.nextUrl.searchParams.get("hours"));
+    const hours = Number.isFinite(hoursParam) && hoursParam > 0 ? hoursParam : 36;
+    const results = await scanAllMailboxes(hours);
+    return NextResponse.json({ ok: true, hours, results });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : "unbekannt" },
