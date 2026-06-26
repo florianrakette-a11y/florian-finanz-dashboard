@@ -37,7 +37,9 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isPublic = path.startsWith("/login") || path.startsWith("/auth");
+  // /api/scan-mailbox schützt sich selbst per CRON_SECRET (kein Login-Cookie).
+  const isPublic =
+    path.startsWith("/login") || path.startsWith("/auth") || path === "/api/scan-mailbox";
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

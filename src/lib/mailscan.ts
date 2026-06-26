@@ -33,9 +33,18 @@ export function configuredMailboxes(): Mailbox[] {
 const RECEIPT_RX =
   /rechnung|invoice|receipt|beleg|quittung|zahlung|payment|order confirmation|bestellbest|kaufbeleg|kassenbon/i;
 
+// Klar KEINE Zahlungsbelege: fehlgeschlagene Zahlungen, Mahnungen, Job-Newsletter etc.
+const EXCLUDE_RX =
+  /fehlgeschlagen|erfolglos|nicht erfolgreich|unsuccessful|declined|did\s?n.?t go through|could\s?n.?t process|could not process|have\s?n.?t been able|was\s?n.?t able|payment failed|mahnung|zahlungserinnerung|forderung|reagieren|handeln erforderlich|problem mit|kandidaten|jobagent|stepstone|werkänderung|rechnungsproblem|action required|returned mail|mailer-daemon|undelivered|gekündigt|warten.{0,20}auf.{0,20}zahlung/i;
+
+function isExcluded(subject: string): boolean {
+  return EXCLUDE_RX.test(subject);
+}
+
 function looksLikeReceipt(mail: ParsedMail): boolean {
   const subject = mail.subject || "";
   const from = mail.from?.text || "";
+  if (isExcluded(subject)) return false;
   return RECEIPT_RX.test(subject) || RECEIPT_RX.test(from);
 }
 
@@ -102,8 +111,27 @@ function guessAmountCents(mail: ParsedMail): number | null {
 
 type ScanResult = { mailbox: string; found: number; skipped: number; error?: string };
 
-/** Scannt ein Postfach (INBOX) der letzten `sinceDays` Tage und legt Belege als 'pending' an. */
-async function scanMailbox(box: Mailbox, sinceDays: number): Promise<ScanResult> {
+function startOfMonth(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
+
+// Läuft den BODYSTRUCTURE-Baum ab (ohne die Mail herunterzuladen) und sucht ein PDF.
+type BodyNode = { type?: string; subtype?: string; parameters?: Record<string, string>; dispositionParameters?: Record<string, string>; childNodes?: BodyNode[] };
+function structureHasPdf(node: BodyNode | undefined): boolean {
+  if (!node) return false;
+  const sub = (node.subtype || "").toLowerCase();
+  const fname = (node.dispositionParameters?.filename || node.parameters?.name || "").toLowerCase();
+  if (((node.type || "").toLowerCase() === "application" && sub === "pdf") || fname.endsWith(".pdf")) return true;
+  return (node.childNodes || []).some(structureHasPdf);
+}
+
+function textLooksLikeReceipt(subject: string, from: string): boolean {
+  return RECEIPT_RX.test(subject) || RECEIPT_RX.test(from);
+}
+
+/** Scannt ein Postfach (INBOX) ab dem 1. des aktuellen Monats und legt Belege als 'pending' an. */
+async function scanMailbox(box: Mailbox): Promise<ScanResult> {
   const supabase = createAdminClient();
   const client = new ImapFlow({
     host: box.host,
@@ -119,9 +147,34 @@ async function scanMailbox(box: Mailbox, sinceDays: number): Promise<ScanResult>
   try {
     const lock = await client.getMailboxLock("INBOX");
     try {
-      const since = new Date(Date.now() - sinceDays * 86400_000);
-      const uids = await client.search({ since }, { uid: true });
-      for (const uid of uids || []) {
+      // Bereits importierte Message-IDs dieses Postfachs (für Dedup vor dem Download).
+      const { data: existingRows } = await supabase
+        .from("email_imports")
+        .select("message_id")
+        .eq("mailbox", box.name);
+      const seen = new Set((existingRows ?? []).map((r) => r.message_id));
+      const alreadyDone = (baseId: string) => seen.has(baseId) || seen.has(`${baseId}#0`);
+
+      // 1) Nur Kopfdaten + Anhang-Struktur holen (billig), Kandidaten bestimmen.
+      const candidates: number[] = [];
+      for await (const m of client.fetch(
+        { since: startOfMonth() },
+        { uid: true, envelope: true, bodyStructure: true },
+      )) {
+        const subject = m.envelope?.subject || "";
+        const from = (m.envelope?.from || []).map((a) => `${a.name ?? ""} ${a.address ?? ""}`).join(" ");
+        const baseId = m.envelope?.messageId || `uid-${m.uid}-${box.name}`;
+        if (alreadyDone(baseId)) {
+          skipped++;
+          continue;
+        }
+        if (isExcluded(subject)) continue;
+        const hasPdf = structureHasPdf(m.bodyStructure as BodyNode | undefined);
+        if (hasPdf || textLooksLikeReceipt(subject, from)) candidates.push(m.uid);
+      }
+
+      // 2) Nur Kandidaten komplett herunterladen + verarbeiten.
+      for (const uid of candidates) {
         const msg = await client.fetchOne(String(uid), { source: true }, { uid: true });
         if (!msg || !msg.source) continue;
         const mail = await simpleParser(msg.source);
@@ -131,6 +184,10 @@ async function scanMailbox(box: Mailbox, sinceDays: number): Promise<ScanResult>
         if (!isReceipt) continue;
 
         const baseId = mail.messageId || `uid-${uid}-${box.name}`;
+        if (alreadyDone(baseId)) {
+          skipped++;
+          continue;
+        }
         const sender = mail.from?.text?.slice(0, 300) || null;
         const subject = mail.subject?.slice(0, 500) || null;
         const receivedAt = mail.date ? mail.date.toISOString() : null;
@@ -151,14 +208,7 @@ async function scanMailbox(box: Mailbox, sinceDays: number): Promise<ScanResult>
         }
 
         for (const it of items) {
-          // Schon vorhanden? (dedup über mailbox+message_id)
-          const { data: existing } = await supabase
-            .from("email_imports")
-            .select("id")
-            .eq("mailbox", box.name)
-            .eq("message_id", it.dedupId)
-            .maybeSingle();
-          if (existing) {
+          if (seen.has(it.dedupId)) {
             skipped++;
             continue;
           }
@@ -180,7 +230,10 @@ async function scanMailbox(box: Mailbox, sinceDays: number): Promise<ScanResult>
             amount_cents: amount,
             status: "pending",
           });
-          if (!insErr) found++;
+          if (!insErr) {
+            found++;
+            seen.add(it.dedupId);
+          }
         }
       }
     } finally {
@@ -192,12 +245,12 @@ async function scanMailbox(box: Mailbox, sinceDays: number): Promise<ScanResult>
   return { mailbox: box.name, found, skipped };
 }
 
-/** Scannt alle konfigurierten Postfächer. Fehler je Postfach werden gesammelt, nicht geworfen. */
-export async function scanAllMailboxes(sinceDays = 2): Promise<ScanResult[]> {
+/** Scannt alle konfigurierten Postfächer (aktueller Monat). Fehler je Postfach werden gesammelt, nicht geworfen. */
+export async function scanAllMailboxes(): Promise<ScanResult[]> {
   const results: ScanResult[] = [];
   for (const box of configuredMailboxes()) {
     try {
-      results.push(await scanMailbox(box, sinceDays));
+      results.push(await scanMailbox(box));
     } catch (e) {
       results.push({ mailbox: box.name, found: 0, skipped: 0, error: e instanceof Error ? e.message : "unbekannt" });
     }
