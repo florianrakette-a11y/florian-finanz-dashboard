@@ -32,6 +32,7 @@ type Invoice = {
   purpose: string | null;
   description: string | null;
   status: string;
+  mahn_hinweis: string | null;
 };
 
 function InvoiceRow({ inv }: { inv: Invoice }) {
@@ -49,6 +50,11 @@ function InvoiceRow({ inv }: { inv: Invoice }) {
         {inv.purpose && (
           <div className="text-[11px] font-normal text-neutral-300 line-clamp-1">
             {inv.purpose}
+          </div>
+        )}
+        {inv.mahn_hinweis && (
+          <div className="mt-1 inline-flex items-center gap-1 rounded bg-red-100 px-1.5 py-0.5 text-[11px] font-medium text-red-700">
+            ⚠️ {inv.mahn_hinweis}
           </div>
         )}
       </td>

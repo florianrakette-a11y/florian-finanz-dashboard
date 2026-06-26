@@ -33,19 +33,73 @@ export function configuredMailboxes(): Mailbox[] {
 const RECEIPT_RX =
   /rechnung|invoice|receipt|beleg|quittung|zahlung|payment|order confirmation|bestellbest|kaufbeleg|kassenbon/i;
 
-// Klar KEINE Zahlungsbelege: fehlgeschlagene Zahlungen, Mahnungen, Job-Newsletter etc.
-const EXCLUDE_RX =
-  /fehlgeschlagen|erfolglos|nicht erfolgreich|unsuccessful|declined|did\s?n.?t go through|could\s?n.?t process|could not process|have\s?n.?t been able|was\s?n.?t able|payment failed|mahnung|zahlungserinnerung|forderung|reagieren|handeln erforderlich|problem mit|kandidaten|jobagent|stepstone|werkänderung|rechnungsproblem|action required|returned mail|mailer-daemon|undelivered|gekündigt|warten.{0,20}auf.{0,20}zahlung/i;
+// Mahnungen / fehlgeschlagene Zahlungen / Zahlungserinnerungen → mit offenen Rechnungen abgleichen (kein Beleg).
+const DUNNING_RX =
+  /mahnung|zahlungserinnerung|erfolglose? zahlung|fehlgeschlagen|nicht erfolgreich|unsuccessful|payment failed|declined|did\s?n.?t go through|could\s?n.?t process|could not process|have\s?n.?t been able|was\s?n.?t able|overdue|past due|problem mit (?:ihrer|deiner|der|unserer)?\s*.{0,12}zahlung|problem with .{0,12}payment|rechnungsproblem|handeln erforderlich|action required|warten.{0,20}auf.{0,20}zahlung|letzte zahlung/i;
 
-function isExcluded(subject: string): boolean {
-  return EXCLUDE_RX.test(subject);
-}
+// Eindeutig kein Beleg und keine Mahnung → ganz verwerfen.
+const JUNK_RX =
+  /kandidaten|jobagent|stepstone|werkänderung|werbung|newsletter|returned mail|mailer-daemon|undelivered|gekündigt|forderungssache|reagieren/i;
 
 function looksLikeReceipt(mail: ParsedMail): boolean {
   const subject = mail.subject || "";
   const from = mail.from?.text || "";
-  if (isExcluded(subject)) return false;
   return RECEIPT_RX.test(subject) || RECEIPT_RX.test(from);
+}
+
+// Mahnstufe aus Betreff+Text. Höherer rank = dringlicher.
+function mahnLevel(text: string): { rank: number; label: string } {
+  const t = text.toLowerCase();
+  if (/letzte mahnung|final (notice|reminder|demand)/.test(t)) return { rank: 4, label: "Letzte Mahnung" };
+  if (/3\.\s*mahnung|dritte mahnung|third reminder/.test(t)) return { rank: 3, label: "3. Mahnung" };
+  if (/2\.\s*mahnung|zweite mahnung|second reminder/.test(t)) return { rank: 2, label: "2. Mahnung" };
+  if (/1\.\s*mahnung|erste mahnung|first reminder/.test(t)) return { rank: 1, label: "1. Mahnung" };
+  if (/\bmahnung\b/.test(t)) return { rank: 2, label: "Mahnung" };
+  if (/fehlgeschlagen|unsuccessful|payment failed|erfolglose? zahlung|declined/.test(t))
+    return { rank: 1, label: "Zahlung fehlgeschlagen" };
+  if (/zahlungserinnerung|payment reminder|gentle reminder|warten.{0,20}auf.{0,20}zahlung/.test(t))
+    return { rank: 0, label: "Zahlungserinnerung" };
+  return { rank: 0, label: "Zahlungshinweis" };
+}
+
+const TOKEN_STOP = new Set([
+  "gmbh", "team", "mail", "info", "service", "kundenservice", "rechnung", "rechnungen",
+  "noreply", "order", "transactions", "statements", "payments", "billing", "group",
+  "global", "limited", "company", "kundeninformation", "support", "kunden", "no-reply",
+]);
+
+// Tokens aus Absendername + Domain (zum Abgleich mit Empfängername der offenen Rechnung).
+function senderTokens(name: string, address: string): string[] {
+  const toks = new Set<string>();
+  name.toLowerCase().split(/[^a-zäöüß0-9]+/).forEach((w) => {
+    if (w.length >= 4 && !TOKEN_STOP.has(w)) toks.add(w);
+  });
+  const dom = (address.split("@")[1] || "").split(".");
+  const sld = dom.length >= 2 ? dom[dom.length - 2] : "";
+  if (sld.length >= 3 && !TOKEN_STOP.has(sld)) toks.add(sld);
+  return [...toks];
+}
+
+type OpenInv = { id: string; recipient: string; amount_cents: number };
+
+/** Findet die eine offene Rechnung, die zur Mahnung passt (Betrag und/oder Absender). null bei 0 oder mehreren. */
+function matchOpenInvoice(open: OpenInv[], tokens: string[], amountCents: number | null): string | null {
+  let best: { id: string; score: number } | null = null;
+  let tie = false;
+  for (const inv of open) {
+    const rec = inv.recipient.toLowerCase();
+    let score = 0;
+    if (amountCents != null && inv.amount_cents === amountCents) score += 2;
+    if (tokens.some((t) => rec.includes(t))) score += 1;
+    if (score === 0) continue;
+    if (!best || score > best.score) {
+      best = { id: inv.id, score };
+      tie = false;
+    } else if (score === best.score) {
+      tie = true;
+    }
+  }
+  return best && !tie ? best.id : null;
 }
 
 function pdfAttachments(mail: ParsedMail): Attachment[] {
@@ -109,7 +163,7 @@ function guessAmountCents(mail: ParsedMail): number | null {
   return Number.isFinite(cents) && cents > 0 ? cents : null;
 }
 
-type ScanResult = { mailbox: string; found: number; skipped: number; error?: string };
+type ScanResult = { mailbox: string; found: number; skipped: number; dunningMatched?: number; error?: string };
 
 function startOfMonth(): Date {
   const now = new Date();
@@ -143,6 +197,7 @@ async function scanMailbox(box: Mailbox): Promise<ScanResult> {
 
   let found = 0;
   let skipped = 0;
+  let dunningMatched = 0;
   await client.connect();
   try {
     const lock = await client.getMailboxLock("INBOX");
@@ -157,6 +212,7 @@ async function scanMailbox(box: Mailbox): Promise<ScanResult> {
 
       // 1) Nur Kopfdaten + Anhang-Struktur holen (billig), Kandidaten bestimmen.
       const candidates: number[] = [];
+      const dunningUids: number[] = [];
       for await (const m of client.fetch(
         { since: startOfMonth() },
         { uid: true, envelope: true, bodyStructure: true },
@@ -168,7 +224,11 @@ async function scanMailbox(box: Mailbox): Promise<ScanResult> {
           skipped++;
           continue;
         }
-        if (isExcluded(subject)) continue;
+        if (JUNK_RX.test(subject)) continue;
+        if (DUNNING_RX.test(subject) || DUNNING_RX.test(from)) {
+          dunningUids.push(m.uid);
+          continue;
+        }
         const hasPdf = structureHasPdf(m.bodyStructure as BodyNode | undefined);
         if (hasPdf || textLooksLikeReceipt(subject, from)) candidates.push(m.uid);
       }
@@ -236,13 +296,56 @@ async function scanMailbox(box: Mailbox): Promise<ScanResult> {
           }
         }
       }
+
+      // 3) Mahnungen mit offenen Rechnungen abgleichen und Hinweis setzen.
+      if (dunningUids.length > 0) {
+        const { data: openInv } = await supabase
+          .from("open_invoices")
+          .select("id, recipient, amount_cents")
+          .neq("status", "paid");
+        const open = (openInv ?? []) as OpenInv[];
+
+        if (open.length > 0) {
+          // Pro offene Rechnung die dringlichste Mahnung sammeln.
+          const best = new Map<string, { rank: number; text: string }>();
+          for (const uid of dunningUids) {
+            const msg = await client.fetchOne(String(uid), { source: true }, { uid: true });
+            if (!msg || !msg.source) continue;
+            const mail = await simpleParser(msg.source);
+            const fromAddr = mail.from?.value?.[0];
+            const tokens = senderTokens(fromAddr?.name || "", fromAddr?.address || "");
+            const amount = guessAmountCents(mail);
+            const id = matchOpenInvoice(open, tokens, amount);
+            if (!id) continue;
+
+            const body = mail.text || (mail.html ? stripHtml(mail.html) : "");
+            const { rank, label } = mahnLevel(`${mail.subject || ""}\n${body}`);
+            const d = mail.date;
+            const date = d
+              ? `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`
+              : "";
+            const text = date ? `${label} am ${date}` : label;
+            const prev = best.get(id);
+            if (!prev || rank >= prev.rank) best.set(id, { rank, text });
+          }
+
+          for (const [id, { text }] of best) {
+            const { error } = await supabase
+              .from("open_invoices")
+              .update({ mahn_hinweis: text, status: "reminded" })
+              .eq("id", id)
+              .neq("status", "paid");
+            if (!error) dunningMatched++;
+          }
+        }
+      }
     } finally {
       lock.release();
     }
   } finally {
     await client.logout().catch(() => {});
   }
-  return { mailbox: box.name, found, skipped };
+  return { mailbox: box.name, found, skipped, dunningMatched };
 }
 
 /** Scannt alle konfigurierten Postfächer (aktueller Monat). Fehler je Postfach werden gesammelt, nicht geworfen. */

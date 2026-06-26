@@ -647,6 +647,7 @@ export type Database = {
           email_message_id: string | null
           iban: string | null
           id: string
+          mahn_hinweis: string | null
           purpose: string | null
           receipt_file_id: string | null
           recipient: string
@@ -661,6 +662,7 @@ export type Database = {
           due_date?: string | null
           email_message_id?: string | null
           iban?: string | null
+          mahn_hinweis?: string | null
           id?: string
           purpose?: string | null
           receipt_file_id?: string | null
@@ -677,6 +679,7 @@ export type Database = {
           email_message_id?: string | null
           iban?: string | null
           id?: string
+          mahn_hinweis?: string | null
           purpose?: string | null
           receipt_file_id?: string | null
           recipient?: string
