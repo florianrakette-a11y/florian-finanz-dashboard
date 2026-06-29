@@ -13,22 +13,34 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-neutral-50 md:flex-row">
-      <aside className="shrink-0 border-b border-neutral-200 bg-white p-3 md:flex md:w-60 md:min-h-screen md:flex-col md:justify-between md:border-b-0 md:border-r md:p-4">
-        <div className="space-y-3 md:space-y-6">
-          <div className="flex items-center justify-between px-1 md:px-3">
+      {/* Mobil: Burger-Menü (nativ via <details>, klappt nur auf Tap auf) */}
+      <details className="border-b border-neutral-200 bg-white md:hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between p-4">
+          <span className="text-base font-semibold text-neutral-900">Finanz Dashboard</span>
+          <span className="text-2xl leading-none text-neutral-700" aria-label="Menü">☰</span>
+        </summary>
+        <div className="space-y-3 px-3 pb-3">
+          <Nav />
+          <form action="/auth/signout" method="post" className="px-3">
+            <button type="submit" className="text-sm font-medium text-neutral-600">
+              Abmelden
+            </button>
+          </form>
+        </div>
+      </details>
+
+      {/* Desktop: feste Sidebar */}
+      <aside className="hidden shrink-0 border-r border-neutral-200 bg-white p-4 md:flex md:min-h-screen md:w-60 md:flex-col md:justify-between">
+        <div className="space-y-6">
+          <div className="px-3">
             <h1 className="text-base font-semibold text-neutral-900">
               Finanz Dashboard
             </h1>
-            <form action="/auth/signout" method="post" className="md:hidden">
-              <button type="submit" className="text-sm font-medium text-neutral-600">
-                Abmelden
-              </button>
-            </form>
           </div>
           <Nav />
         </div>
 
-        <div className="hidden space-y-2 px-3 md:block">
+        <div className="space-y-2 px-3">
           <p className="truncate text-xs text-neutral-500">{user?.email}</p>
           <form action="/auth/signout" method="post">
             <button
