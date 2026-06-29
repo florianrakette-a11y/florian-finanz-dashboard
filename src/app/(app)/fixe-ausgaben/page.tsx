@@ -12,7 +12,8 @@ import { DeleteButton } from "@/components/delete-button";
 import {
   createFixedExpense,
   deleteFixedExpense,
-  toggleFixedExpenseActive,
+  endFixedExpense,
+  reactivateFixedExpense,
   updateFixedExpenseCategory,
 } from "./actions";
 import { CategoryCell } from "@/components/category-cell";
@@ -22,7 +23,15 @@ import type { Database } from "@/lib/supabase/database.types";
 
 type Row = Database["public"]["Tables"]["fixed_expenses"]["Row"];
 
-function FixedRow({ r, knownCategories }: { r: Row; knownCategories: string[] }) {
+function FixedRow({
+  r,
+  knownCategories,
+  month,
+}: {
+  r: Row;
+  knownCategories: string[];
+  month: string;
+}) {
   const nonMonthly = r.frequency !== "monthly";
   return (
     <tr className={r.active ? "" : "bg-neutral-50 text-neutral-400"}>
@@ -65,13 +74,22 @@ function FixedRow({ r, knownCategories }: { r: Row; knownCategories: string[] })
           >
             Bearbeiten
           </Link>
-          <form action={toggleFixedExpenseActive}>
-            <input type="hidden" name="id" value={r.id} />
-            <input type="hidden" name="active" value={String(r.active)} />
-            <button className="text-sm font-medium text-neutral-600 hover:text-neutral-900">
-              {r.active ? "Deaktivieren" : "Aktivieren"}
-            </button>
-          </form>
+          {r.end_date ? (
+            <form action={reactivateFixedExpense}>
+              <input type="hidden" name="id" value={r.id} />
+              <button className="text-sm font-medium text-neutral-600 hover:text-neutral-900">
+                Wieder aktivieren
+              </button>
+            </form>
+          ) : (
+            <form action={endFixedExpense}>
+              <input type="hidden" name="id" value={r.id} />
+              <input type="hidden" name="month" value={month} />
+              <button className="text-sm font-medium text-neutral-600 hover:text-neutral-900">
+                Ab {monthLabel(month)} beenden
+              </button>
+            </form>
+          )}
           <DeleteButton action={deleteFixedExpense} id={r.id} name={r.name} />
         </div>
       </td>
@@ -82,9 +100,11 @@ function FixedRow({ r, knownCategories }: { r: Row; knownCategories: string[] })
 function FixedTable({
   rows,
   knownCategories,
+  month,
 }: {
   rows: Row[];
   knownCategories: string[];
+  month: string;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
@@ -101,7 +121,7 @@ function FixedTable({
         </thead>
         <tbody className="divide-y divide-neutral-100">
           {rows.map((r) => (
-            <FixedRow key={r.id} r={r} knownCategories={knownCategories} />
+            <FixedRow key={r.id} r={r} knownCategories={knownCategories} month={month} />
           ))}
         </tbody>
       </table>
@@ -172,7 +192,7 @@ export default async function FixeAusgabenPage({
           Keine fixen Ausgaben fällig in {monthLabel(month)}.
         </div>
       ) : (
-        <FixedTable rows={dueThisMonth} knownCategories={knownCategories} />
+        <FixedTable rows={dueThisMonth} knownCategories={knownCategories} month={month} />
       )}
 
       <details className="rounded-2xl border border-neutral-200 bg-white p-6">
@@ -180,7 +200,7 @@ export default async function FixeAusgabenPage({
           Alle fixen Ausgaben verwalten ({all.length})
         </summary>
         <div className="mt-6">
-          <FixedTable rows={all} knownCategories={knownCategories} />
+          <FixedTable rows={all} knownCategories={knownCategories} month={month} />
         </div>
       </details>
 

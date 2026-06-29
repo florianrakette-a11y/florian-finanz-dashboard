@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { parseEuroToCents } from "@/lib/format";
+import { isValidMonth, monthBounds, shiftMonth } from "@/lib/month";
 import { Constants } from "@/lib/supabase/database.types";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -118,10 +119,21 @@ export async function deleteFixedExpense(formData: FormData) {
   revalidatePath("/fixe-ausgaben");
 }
 
-export async function toggleFixedExpenseActive(formData: FormData) {
+/** Beendet eine fixe Ausgabe AB dem angezeigten Monat: end_date = letzter Tag des Vormonats.
+ *  Vergangene Monate bleiben unverändert (keine rückwirkende Änderung). */
+export async function endFixedExpense(formData: FormData) {
   const id = String(formData.get("id") ?? "");
-  const active = String(formData.get("active") ?? "") === "true";
+  const month = String(formData.get("month") ?? "");
+  if (!isValidMonth(month)) return;
+  const end_date = monthBounds(shiftMonth(month, -1)).to;
   const supabase = await requireUser();
-  await supabase.from("fixed_expenses").update({ active: !active }).eq("id", id);
+  await supabase.from("fixed_expenses").update({ end_date }).eq("id", id);
+  revalidatePath("/fixe-ausgaben");
+}
+
+export async function reactivateFixedExpense(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  const supabase = await requireUser();
+  await supabase.from("fixed_expenses").update({ end_date: null, active: true }).eq("id", id);
   revalidatePath("/fixe-ausgaben");
 }

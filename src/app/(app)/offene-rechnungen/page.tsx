@@ -137,18 +137,23 @@ export default async function OffeneRechnungenPage({
   const supabase = await createClient();
 
   // Rechnungen des Monats (nach Fälligkeitsdatum) + undatierte (immer sichtbar).
-  const [monthRes, undatedRes, allRes, txRes] = await Promise.all([
+  const [openRes, paidRes, allRes, txRes] = await Promise.all([
+    // Offen = unbezahlt und fällig bis einschließlich dieser Monat (oder undatiert):
+    // läuft so aus Vormonaten mit, bis es bezahlt/gelöscht wird.
     supabase
       .from("open_invoices")
       .select("*")
+      .neq("status", "paid")
+      .or(`due_date.lte.${to},due_date.is.null`)
+      .order("due_date", { ascending: true, nullsFirst: false }),
+    // Bezahlt = nur im jeweiligen Fälligkeitsmonat anzeigen (Historie).
+    supabase
+      .from("open_invoices")
+      .select("*")
+      .eq("status", "paid")
       .gte("due_date", from)
       .lte("due_date", to)
       .order("due_date", { ascending: true }),
-    supabase
-      .from("open_invoices")
-      .select("*")
-      .is("due_date", null)
-      .order("created_at", { ascending: true }),
     supabase.from("open_invoices").select("recipient, amount_cents"),
     supabase
       .from("bank_transactions")
@@ -157,13 +162,9 @@ export default async function OffeneRechnungenPage({
       .lte("date", to),
   ]);
 
-  const monthInvoices = monthRes.data ?? [];
-  const undatedInvoices = undatedRes.data ?? [];
-
-  // Offene Summe (alles, was nicht bezahlt ist).
-  const openTotal = [...monthInvoices, ...undatedInvoices]
-    .filter((i) => i.status !== "paid")
-    .reduce((s, i) => s + i.amount_cents, 0);
+  const openInvoices = openRes.data ?? [];
+  const paidInvoices = paidRes.data ?? [];
+  const openTotal = openInvoices.reduce((s, i) => s + i.amount_cents, 0);
 
   // Fehlgeschlagene Abbuchungen erkennen, bereits übernommene ausblenden.
   const existingKeys = new Set(
@@ -228,20 +229,20 @@ export default async function OffeneRechnungenPage({
         </div>
       )}
 
-      {/* Rechnungen des Monats */}
-      {monthInvoices.length > 0 ? (
-        <InvoiceTable rows={monthInvoices} />
+      {/* Offen (inkl. Übertrag aus Vormonaten) */}
+      {openInvoices.length > 0 ? (
+        <InvoiceTable rows={openInvoices} />
       ) : (
         <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center text-sm text-neutral-500">
-          Keine Rechnungen mit Fälligkeit in {monthLabel(month)}.
+          Keine offenen Rechnungen in {monthLabel(month)}.
         </div>
       )}
 
-      {/* Undatierte Rechnungen (immer sichtbar) */}
-      {undatedInvoices.length > 0 && (
+      {/* In diesem Monat bezahlt (Historie) */}
+      {paidInvoices.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-neutral-500">Ohne Fälligkeitsdatum</h3>
-          <InvoiceTable rows={undatedInvoices} />
+          <h3 className="text-sm font-medium text-neutral-500">Bezahlt in {monthLabel(month)}</h3>
+          <InvoiceTable rows={paidInvoices} />
         </div>
       )}
 
