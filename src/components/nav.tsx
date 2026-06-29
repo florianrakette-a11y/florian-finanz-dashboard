@@ -20,7 +20,7 @@ export function Nav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-col gap-1">
+    <nav className="flex flex-row gap-1 overflow-x-auto md:flex-col">
       {links.map((link) => {
         const active =
           link.href === "/"
@@ -30,7 +30,7 @@ export function Nav() {
           <Link
             key={link.href}
             href={link.href}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+            className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition ${
               active
                 ? "bg-neutral-900 text-white"
                 : "text-neutral-700 hover:bg-neutral-100"
