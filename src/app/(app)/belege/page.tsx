@@ -20,7 +20,7 @@ function RowActions({ b }: { b: Beleg }) {
   return (
     <details className="relative inline-block text-left">
       <summary className="cursor-pointer list-none rounded px-2 py-1 text-neutral-500 hover:bg-neutral-100">⋯</summary>
-      <div className="absolute right-0 z-10 mt-1 w-48 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-lg">
+      <div className="fixed inset-x-0 bottom-0 z-20 w-full overflow-hidden rounded-t-2xl border-t border-neutral-200 bg-white shadow-lg sm:absolute sm:inset-auto sm:right-0 sm:bottom-auto sm:mt-1 sm:w-48 sm:rounded-lg sm:border">
         {b.kind === "out" ? (
           <>
             <a href={`/rechnungen/${b.rid}`} className={menuItem}>Ansehen</a>
@@ -145,8 +145,8 @@ export default async function BelegePage({
           Keine Belege.
         </div>
       ) : (
-        <div className="rounded-2xl border border-neutral-200 bg-white">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
+          <table className="w-full min-w-[640px] text-sm">
             <tbody className="divide-y divide-neutral-100">
               {rows.map((r) => (
                 <tr key={r.key} className="hover:bg-neutral-50">
