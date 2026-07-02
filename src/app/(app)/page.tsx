@@ -138,7 +138,7 @@ export default async function OverviewPage({
             {formatCents(bankSaldo)}
           </div>
           <p className="mt-4 text-sm text-neutral-400">
-            Tatsächliche Bewegungen auf Kontist + PayPal in {monthLabel(month)}.
+            Tatsächliche Bewegungen auf Kontist, PayPal + Finom in {monthLabel(month)}.
           </p>
         </div>
       </div>
