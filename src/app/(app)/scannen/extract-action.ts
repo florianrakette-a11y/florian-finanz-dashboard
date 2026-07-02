@@ -20,8 +20,15 @@ export async function extractReceipt(dataUrl: string): Promise<Result> {
   await requireUser();
 
   const m = /^data:(.+?);base64,(.+)$/.exec(dataUrl);
-  if (!m) return { error: "Ungültiges Bild." };
+  if (!m) return { error: "Ungültige Datei." };
   const [, mediaType, base64] = m;
+
+  // PDF (z. B. Adobe Scan) → document-Block; Bilder → image-Block. Beide ohne Beta-Header.
+  const source = { type: "base64" as const, media_type: mediaType, data: base64 };
+  const fileBlock =
+    mediaType === "application/pdf"
+      ? { type: "document", source: { ...source, media_type: "application/pdf" } }
+      : { type: "image", source };
 
   let json;
   try {
@@ -38,10 +45,7 @@ export async function extractReceipt(dataUrl: string): Promise<Result> {
         messages: [
           {
             role: "user",
-            content: [
-              { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-              { type: "text", text: PROMPT },
-            ],
+            content: [fileBlock, { type: "text", text: PROMPT }],
           },
         ],
       }),

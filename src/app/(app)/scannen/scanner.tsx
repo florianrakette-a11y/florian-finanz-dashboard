@@ -53,10 +53,11 @@ export function Scanner() {
   }
 
   async function readWithClaude() {
-    if (!images[0]) return;
+    const source = images[0] ?? pdfs[0]?.url;
+    if (!source) return;
     setReading(true);
     setReadErr(null);
-    const res = await extractReceipt(images[0]);
+    const res = await extractReceipt(source);
     setReading(false);
     if (res.error || !res.data) {
       setReadErr(res.error ?? "Konnte nicht ausgelesen werden.");
@@ -116,15 +117,13 @@ export function Scanner() {
                 </div>
               ))}
             </div>
-            {images.length > 0 && (
-              <>
-                <button type="button" onClick={readWithClaude} disabled={reading}
-                  className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50">
-                  {reading ? "Lese aus…" : "Mit Claude auslesen"}
-                </button>
-                {readErr && <p className="text-sm text-red-600">{readErr}</p>}
-              </>
-            )}
+            <div>
+              <button type="button" onClick={readWithClaude} disabled={reading}
+                className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50">
+                {reading ? "Lese aus…" : "Mit Claude auslesen"}
+              </button>
+              {readErr && <p className="mt-1 text-sm text-red-600">{readErr}</p>}
+            </div>
           </>
         )}
       </div>
