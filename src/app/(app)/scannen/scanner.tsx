@@ -19,8 +19,22 @@ async function toDataUrl(file: File): Promise<string> {
   return canvas.toDataURL("image/jpeg", 0.85);
 }
 
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+function isPdf(file: File): boolean {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
 export function Scanner() {
   const [images, setImages] = useState<string[]>([]);
+  const [pdfs, setPdfs] = useState<{ name: string; url: string }[]>([]);
   const [kind, setKind] = useState<"paid" | "open">("paid");
   const [f, setF] = useState({ counterparty: "", amount: "", date: "", category: "tanken", purpose: "", vat: "19" });
   const [reading, setReading] = useState(false);
@@ -29,8 +43,12 @@ export function Scanner() {
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    const urls = await Promise.all(files.map(toDataUrl));
+    const imgs = files.filter((file) => !isPdf(file));
+    const pdfFiles = files.filter(isPdf);
+    const urls = await Promise.all(imgs.map(toDataUrl));
+    const pdfUrls = await Promise.all(pdfFiles.map(readAsDataUrl));
     setImages((prev) => [...prev, ...urls]);
+    setPdfs((prev) => [...prev, ...pdfUrls.map((url, i) => ({ name: pdfFiles[i].name, url }))]);
     e.target.value = "";
   }
 
@@ -68,14 +86,17 @@ export function Scanner() {
   return (
     <form action={formAction} className="space-y-6">
       <input type="hidden" name="images" value={JSON.stringify(images)} />
+      <input type="hidden" name="pdfs" value={JSON.stringify(pdfs.map((p) => p.url))} />
       <input type="hidden" name="kind" value={kind} />
 
       {/* Aufnahme */}
       <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-6">
-        <label className={labelClass}>Beleg fotografieren oder Datei wählen (mehrere möglich → ein PDF)</label>
-        <input type="file" accept="image/*" capture="environment" multiple onChange={onPick}
+        <label className={labelClass}>
+          Beleg fotografieren, Foto wählen oder PDF hochladen (z. B. Adobe Scan). Mehrere Fotos → ein PDF.
+        </label>
+        <input type="file" accept="image/*,application/pdf" multiple onChange={onPick}
           className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white" />
-        {images.length > 0 && (
+        {(images.length > 0 || pdfs.length > 0) && (
           <>
             <div className="flex flex-wrap gap-2">
               {images.map((src, i) => (
@@ -86,12 +107,24 @@ export function Scanner() {
                     className="absolute -right-2 -top-2 rounded-full bg-white px-1 text-xs text-red-600 shadow">✕</button>
                 </div>
               ))}
+              {pdfs.map((p, i) => (
+                <div key={`pdf-${i}`} className="relative flex h-24 w-20 flex-col items-center justify-center gap-1 rounded border border-neutral-200 bg-neutral-50 p-1 text-center">
+                  <span className="text-lg">📄</span>
+                  <span className="w-full truncate text-[10px] text-neutral-500">{p.name}</span>
+                  <button type="button" onClick={() => setPdfs((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="absolute -right-2 -top-2 rounded-full bg-white px-1 text-xs text-red-600 shadow">✕</button>
+                </div>
+              ))}
             </div>
-            <button type="button" onClick={readWithClaude} disabled={reading}
-              className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50">
-              {reading ? "Lese aus…" : "Mit Claude auslesen"}
-            </button>
-            {readErr && <p className="text-sm text-red-600">{readErr}</p>}
+            {images.length > 0 && (
+              <>
+                <button type="button" onClick={readWithClaude} disabled={reading}
+                  className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50">
+                  {reading ? "Lese aus…" : "Mit Claude auslesen"}
+                </button>
+                {readErr && <p className="text-sm text-red-600">{readErr}</p>}
+              </>
+            )}
           </>
         )}
       </div>
@@ -143,7 +176,7 @@ export function Scanner() {
 
       {state.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
 
-      <button type="submit" disabled={pending || images.length === 0}
+      <button type="submit" disabled={pending || (images.length === 0 && pdfs.length === 0)}
         className="rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50">
         {pending ? "Speichere & sende an Buchhaltungsbutler…" : "Speichern & an Buchhaltungsbutler"}
       </button>

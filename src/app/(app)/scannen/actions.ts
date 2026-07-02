@@ -39,20 +39,28 @@ export async function saveScan(_prev: ScanState, formData: FormData): Promise<Sc
   if (amountCents <= 0) return { error: "Betrag muss größer 0 sein." };
 
   let images: string[];
+  let pdfsIn: string[];
   try {
     images = JSON.parse(String(formData.get("images") ?? "[]"));
+    pdfsIn = JSON.parse(String(formData.get("pdfs") ?? "[]"));
   } catch {
-    return { error: "Bilder konnten nicht gelesen werden." };
+    return { error: "Dateien konnten nicht gelesen werden." };
   }
-  const buffers = images.map(dataUrlToBuffer).filter((b): b is Buffer => b !== null);
-  if (buffers.length === 0) return { error: "Mindestens ein Foto aufnehmen." };
 
-  // 1) PDF bauen
+  // 1) PDF bestimmen: hochgeladenes PDF (z. B. Adobe Scan) direkt nehmen,
+  //    sonst die Fotos zu einem PDF zusammenfügen.
   let pdf: Buffer;
-  try {
-    pdf = await imagesToPdf(buffers);
-  } catch (e) {
-    return { error: "PDF-Erzeugung fehlgeschlagen: " + (e instanceof Error ? e.message : "unbekannt") };
+  const pdfBuf = pdfsIn.map(dataUrlToBuffer).find((b): b is Buffer => b !== null);
+  if (pdfBuf) {
+    pdf = pdfBuf; // ponytail: erstes PDF; mehrere PDFs zusammenführen erst bei Bedarf (pdf-lib)
+  } else {
+    const buffers = images.map(dataUrlToBuffer).filter((b): b is Buffer => b !== null);
+    if (buffers.length === 0) return { error: "Mindestens ein Foto oder PDF wählen." };
+    try {
+      pdf = await imagesToPdf(buffers);
+    } catch (e) {
+      return { error: "PDF-Erzeugung fehlgeschlagen: " + (e instanceof Error ? e.message : "unbekannt") };
+    }
   }
 
   const supabase = await requireUser();
