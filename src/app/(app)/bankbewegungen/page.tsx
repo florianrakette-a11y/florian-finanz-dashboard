@@ -95,7 +95,8 @@ export default async function BankbewegungenPage({
   // --- Monatsmodus ---
   const month = isValidMonth(sp.month) ? sp.month : currentMonth();
   const { from, to } = monthBounds(month);
-  const konto = sp.konto === "Kontist" || sp.konto === "PayPal" ? sp.konto : null;
+  const konto =
+    sp.konto === "Kontist" || sp.konto === "PayPal" || sp.konto === "Finom" ? sp.konto : null;
 
   let query = supabase
     .from("bank_transactions")
@@ -112,7 +113,7 @@ export default async function BankbewegungenPage({
       <div>
         <h2 className="text-2xl font-semibold text-neutral-900">Bankbewegungen</h2>
         <p className="mt-1 text-sm text-neutral-500">
-          Aus Buchhaltungsbutler (Kontist & PayPal). Abruf nur lesend.
+          Aus Buchhaltungsbutler (Kontist, PayPal & Finom). Abruf nur lesend.
         </p>
       </div>
 
@@ -122,7 +123,7 @@ export default async function BankbewegungenPage({
 
       <div className="flex items-center justify-between gap-4">
         <div className="flex gap-1">
-          {([null, "Kontist", "PayPal"] as const).map((k) => {
+          {([null, "Kontist", "PayPal", "Finom"] as const).map((k) => {
             const active = konto === k;
             const href = k
               ? `/bankbewegungen?month=${month}&konto=${k}`

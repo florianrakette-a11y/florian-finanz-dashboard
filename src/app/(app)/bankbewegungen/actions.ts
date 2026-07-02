@@ -42,10 +42,12 @@ export async function syncBankTransactions(
     const accounts = await fetchAccounts();
     const kontist = accounts.find((a) => /kontist/i.test(a.name));
     const paypal = accounts.find((a) => a.name === "PayPal");
+    const finom = accounts.find((a) => /finom|603662872/i.test(a.name));
 
     const sources = [
       { label: "Kontist", number: kontist?.postingaccount_number },
       { label: "PayPal", number: paypal?.postingaccount_number },
+      { label: "Finom", number: finom?.postingaccount_number },
     ].filter((s): s is { label: string; number: string } => Boolean(s.number));
 
     for (const src of sources) {
